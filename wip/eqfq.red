@@ -59,10 +59,10 @@ done
 # This matches all ip protocols and is one of three rules working
 
 ${TC} filter add dev $IFACE protocol ip parent 1: handle 3 prio 97 \
-        flow hash keys proto-dst divisor $BINS
+        flow hash keys proto-dst,rxhash divisor $BINS
 
 ${TC} filter add dev $IFACE protocol ipv6 parent 1: handle 4 prio 98 \
-        flow hash keys proto-dst divisor $BINS
+        flow hash keys proto-dst,rxhash divisor $BINS
 
 # And it turns out that you can match ipv6 separately
 
