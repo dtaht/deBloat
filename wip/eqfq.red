@@ -1,9 +1,12 @@
 #!/bin/sh
+# This is the closest I have yet come to making 100Mbit ethernet
+# work well with minimal interstream latencies.
+# It DOES run at line rate.
+
+# Requires BQL in order to work right + a tweak or two
+
 TC=~d/git/iproute2/tc/tc
 IFACE=eth0
-#TNETS="172.30.48.1/24 172.30.49.1/24"
-TNETS="0.0.0.0/0"
-#172.30.48.1/24 172.30.49.1/24"
 BINS=256
 BLIMIT=24000
 GLIMIT=32
@@ -68,54 +71,7 @@ ${TC} filter add dev $IFACE protocol ipv6 parent 1: handle 4 prio 98 \
 
 exit
 
-${TC} filter add dev $IFACE protocol ip parent 1: prio 6 \
-       u32 match u16 0xFFFe 0xffff at -12 flowid 1:3
-
-${TC} filter add dev $IFACE protocol ip parent 1: prio 6 \
-       u32 match u16 0x0001 0xffff at -12 flowid 1:4
-
-${TC} filter add dev $IFACE protocol 802 parent 1: prio 7 \
-       u32 match u16 0xFFFe 0xffff at 0 flowid 1:3
-
-${TC} filter add dev $IFACE protocol 802 parent 1: prio 7 \
-       u32 match u16 0x0001 0xffff at 0 flowid 1:4
-
-${TC} filter add dev $IFACE protocol 802_3 parent 1: prio 3 \
-       u32 match u16 0xFFFe 0xffff at 0 flowid 1:3
-
-${TC} filter add dev $IFACE protocol 802_3 parent 1: prio 3 \
-       u32 match u16 0x0001 0xffff at 0 flowid 1:4
-
-${TC} filter add dev $IFACE protocol 0x0806 parent 1: prio 11 \
-	u32 match u32 0 0 flowid 1:2
-
-# None of the above rules work. Actually the 802_3 rule 
-# Seemed to work.
-
-
-exit 0
-
-for privnet in $TNETS
-do
-        ${TC} filter add dev $IFACE parent 1: protocol ip prio 100 u32 \
-                match ip dst $privnet flowid 1:0
-done
-
-
-
-#${TC} filter add dev $IFACE parent 1: prio 10 protocol 0x0806 u32
-
-#       You also need to add at least one filter to classify packets.
-
-
-#       ${TC} qdisc add dev .. qfq
-
-#       for i in .. 1024;do
-#            ${TC} class add dev .. classid $handle:$(print %x $i)
-#            ${TC} qdisc add dev .. fifo limit 16
-#       done
-
-#       ${TC}  filter  add  ..   protocol   ip   ..   $handle   flow   hash   keys
+# 	Probably need a more robust filter above.
 #       src,dst,proto,proto-src,proto-dst divisor 1024 perturb 10
 
 
