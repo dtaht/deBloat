@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# On starting an interface, set the txqueuelen to the right thing
+# FIXME: Allow per product default minimum blacklist
+# FIXME: If there is no explicit txqueuelen, set according to the default
+# /sys/class/net/*/brforward shows a bridge
+# FIXME for underlying bridged interfaces
+# FIXME don't change ethtool if already changed
+# What indicates ppp?
+
+SYSPATH=/sys/class/net/
+#DEBLOAT_LOG=/tmp/debloat.log
+DEBLOAT_LOG=/dev/null
+
+debloat_interface() {
+local DEV=$1
+local devtype=3
+[ -h $SYSPATH/$DEV ] && devtype=0
+[ -h $SYSPATH/$DEV/phy80211 ] && devtype=1
+[ -d $SYSPATH/$DEV/brif ] && devtype=2
+
+case $devtype in
+	0) ip link set $DEV txqueuelen 8 ;;
+	1) ip link set $DEV txqueuelen 37 ;;
+	2) echo 'do something sane on a bridge' >> $DEBLOAT_LOG ;;
+	*) echo 'unknown interface type' >> $DEBLOAT_LOG ;;
+esac
+}
+
+[ "$ACTION" = "ifup" ] && debloat_interface $DEVICE >> $DEBLOAT_LOG
