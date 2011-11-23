@@ -1,0 +1,6 @@
+       tc  qdisc  ... dev dev ( parent classid | root) [ handle major: ] htb [
+       default minor-id ]
+
+       tc class ... dev dev parent major:[minor] [ classid major:minor  ]  htb
+       rate rate [ ceil rate ] burst bytes [ cburst bytes ] [ prio priority ]
+
