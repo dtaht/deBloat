@@ -36,13 +36,13 @@ ${TC} class add dev $IFACE parent 1: classid 1:$def qfq
 ${TC} qdisc add dev $IFACE parent 1:$def handle $def \
 	$NORMDISC limit 16
 
+# Schedule all multicast traffic in one bin
+
 ${TC} filter add dev $IFACE protocol ip parent 1: prio 5 \
        u32 match u16 0x0100 0x0100 at -14 flowid 1:$mcast
 
 ${TC} filter add dev $IFACE protocol ipv6 parent 1: prio 6 \
        u32 match u16 0x0100 0x0100 at -14 flowid 1:$mcast
-
-# Fixme, filter the rest of the multicast out...
 
 # And this is a catchall for everything else
 
