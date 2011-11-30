@@ -1,0 +1,7 @@
+#!/bin/sh
+
+for i in `seq 0 12`
+do
+iperf -t 120 -w1m -c 172.30.48.17 &
+done
+wait

@@ -1,0 +1,6 @@
+#!/bin/sh
+
+while :
+do
+./beatup
+done
