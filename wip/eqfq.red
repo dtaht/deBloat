@@ -33,11 +33,11 @@ def=`printf "%x" $DEFAULTB`
 
 ${TC} class add dev $IFACE parent 1: classid 1:$mcast qfq 
 ${TC} qdisc add dev $IFACE parent 1:$mcast handle $mcast \
-	$MDISC limit 16
+	$MDISC limit $GLIMIT
 
 ${TC} class add dev $IFACE parent 1: classid 1:$def qfq 
 ${TC} qdisc add dev $IFACE parent 1:$def handle $def \
-	$NORMDISC limit 16
+	$NORMDISC limit $GLIMIT
 
 # Schedule all multicast traffic in one bin
 
@@ -46,6 +46,8 @@ ${TC} filter add dev $IFACE protocol ip parent 1: prio 5 \
 
 ${TC} filter add dev $IFACE protocol ipv6 parent 1: prio 6 \
        u32 match u16 0x0100 0x0100 at -14 flowid 1:$mcast
+
+# Do I need to match arp?
 
 # And this is a catchall for everything else
 
