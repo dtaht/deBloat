@@ -8,7 +8,7 @@ BIGDISC="red min 4500 max 9000 probability 0.01 avpkt 1000 limit 24000 burst 5 e
 MDISC="pfifo limit 16"
 NORMDISC="pfifo limit 32"
 
-ifconfig $IFACE txqueuelen 120
+ifconfig $IFACE txqueuelen 8192
 
 main=10
 VO=10
@@ -21,10 +21,11 @@ BK=40
 
 ${TC} qdisc del dev $IFACE handle 1 root
 ${TC} qdisc add dev $IFACE handle 1 root mq
-${TC} qdisc add dev $IFACE parent 1:1 handle $VO: qfq
-${TC} qdisc add dev $IFACE parent 1:2 handle $VI: qfq
-${TC} qdisc add dev $IFACE parent 1:3 handle $BE: qfq
-${TC} qdisc add dev $IFACE parent 1:4 handle $BK: qfq
+${TC} qdisc add dev $IFACE parent 1:0 handle 5 qfq
+${TC} qdisc add dev $IFACE parent 1:1 handle $VO qfq
+${TC} qdisc add dev $IFACE parent 1:2 handle $VI qfq
+${TC} qdisc add dev $IFACE parent 1:3 handle $BE qfq
+${TC} qdisc add dev $IFACE parent 1:4 handle $BK qfq
 
 # Setting all this up is high overhead so we
 # setup the the default bins first
@@ -32,7 +33,7 @@ ${TC} qdisc add dev $IFACE parent 1:4 handle $BK: qfq
 MULTICAST=`expr $BINS + 1`
 DEFAULTB=`expr $BINS + 2`
 
-mcast=`printf "%x" $MULTCAST`
+mcast=`printf "%x" $MULTICAST`
 def=`printf "%x" $DEFAULTB`
 
 # Multicast is 'special' on wireless. It WEIGHS a lot
@@ -41,24 +42,27 @@ ${TC} class add dev $IFACE parent $VO classid $VO:$mcast qfq
 ${TC} qdisc add dev $IFACE parent $VO:$mcast handle $mcast \
 	$MDISC
 
-${TC} class add dev $IFACE parent $BE: classid 1:$def qfq 
+${TC} class add dev $IFACE parent $BE classid $BE:$def qfq 
 ${TC} qdisc add dev $IFACE parent $BE:$def handle $def $NORMDISC 
 
 # Match Mac addresses for multicast
 # FIXME: are there other ways to get at multicast? 802.3?
 # (Mis)treat multicast specially
 
-${TC} filter add dev $IFACE protocol ip parent 1: prio 5 \
+${TC} filter add dev $IFACE protocol ip parent 10: prio 5 \
        u32 match u16 0x0100 0x0100 at -14 flowid $VO:$mcast
 
-${TC} filter add dev $IFACE protocol ipv6 parent 1: prio 6 \
+${TC} filter add dev $IFACE protocol ipv6 parent 10: prio 6 \
+       u32 match u16 0x0100 0x0100 at -14 flowid $VO:$mcast
+
+${TC} filter add dev $IFACE protocol arp parent 30: prio 7 \
        u32 match u16 0x0100 0x0100 at -14 flowid $VO:$mcast
 
 # ARP?
 
 # And this is a catchall for everything else (while we setup elsewhere)
 
-${TC} filter add dev $IFACE protocol all parent 1: prio 999 \
+${TC} filter add dev $IFACE protocol all parent 30: prio 999 \
 	u32 match ip protocol 0 0x00 flowid $BE:$def
 
 for j in $VO $VI $BE $BK
@@ -74,10 +78,10 @@ done
 for i in $VO $VI $BK $BE
 do
 ${TC} filter add dev $IFACE protocol ip parent $i: handle 3 prio 97 \
-        flow hash keys proto-dst divisor $BINS
+        flow hash keys proto-dst,rxhash divisor $BINS
 
 ${TC} filter add dev $IFACE protocol ipv6 parent $i: handle 4 prio 98 \
-        flow hash keys proto-dst divisor $BINS
+        flow hash keys proto-dst,rxhash divisor $BINS
 done
 
 # And it turns out that you can match ipv6 separately

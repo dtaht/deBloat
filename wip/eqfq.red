@@ -6,6 +6,7 @@
 # Requires BQL in order to work right + a tweak or two
 
 TC=~d/git/iproute2/tc/tc
+TXQUEUELEN=1000
 IFACE=eth0
 BINS=256
 BLIMIT=24000
@@ -14,9 +15,11 @@ BIGDISC="red min 4500 max 9000 probability 0.01 avpkt 1000 limit 24000 burst 5 e
 MDISC=pfifo
 NORMDISC=pfifo
 
+# FIXME: We should try to keep at least 2 packets in each bin
+# So we need to set txqueuelen more appropriately
 
 ${TC} qdisc del dev $IFACE handle 1 root
-ifconfig $IFACE txqueuelen 120
+ifconfig $IFACE txqueuelen $TXQUEUELEN
 ${TC} qdisc add dev $IFACE handle 1 root qfq
 
 # Setting all this up is high overhead so we
@@ -58,11 +61,13 @@ done
 
 # This matches all ip protocols and is one of three rules working
 
-${TC} filter add dev $IFACE protocol ip parent 1: handle 3 prio 97 \
+${TC} filter add dev $IFACE protocol ip parent 1: handle 3 prio 96 \
         flow hash keys proto-dst,rxhash divisor $BINS
 
-${TC} filter add dev $IFACE protocol ipv6 parent 1: handle 4 prio 98 \
+${TC} filter add dev $IFACE protocol ipv6 parent 1: handle 4 prio 97 \
         flow hash keys proto-dst,rxhash divisor $BINS
+
+# Fixme for vlans??
 
 # And it turns out that you can match ipv6 separately
 
