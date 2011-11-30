@@ -1,0 +1,62 @@
+#!/bin/sh
+TC=~d/git/iproute2/tc/tc
+IFACE=wlan0
+BINS=64
+BIGQDISC="bfifo limit 12000"
+
+${TC} qdisc del dev $IFACE handle 1 root
+${TC} qdisc add dev $IFACE handle 1 root qfq
+
+# Setting all this up is high overhead so lets
+# setup the the default bins first
+
+MULTICAST=`expr $BINS + 1`
+DEFAULTB=`expr $BINS + 2`
+
+mcast=`printf "%x" $MULTICAST`
+def=`printf "%x" $DEFAULTB`
+
+${TC} class add dev $IFACE parent 1: classid 1:$hex qfq 
+${TC} qdisc add dev $IFACE parent 1:$mcast handle $mcast $BIGQDISC
+
+${TC} class add dev $IFACE parent 1: classid 1:$def qfq 
+${TC} qdisc add dev $IFACE parent 1:$def handle $def $BIGQDISC
+
+# Schedule all multicast traffic in one bin
+
+${TC} filter add dev $IFACE protocol ip parent 1: prio 5 \
+       u32 match u16 0x0100 0x0100 at -14 flowid 1:$mcast
+
+${TC} filter add dev $IFACE protocol ipv6 parent 1: prio 6 \
+       u32 match u16 0x0100 0x0100 at -14 flowid 1:$mcast
+
+# And this is a catchall for everything else
+
+${TC} filter add dev $IFACE protocol all parent 1: prio 999 \
+	u32 match ip protocol 0 0x00 flowid 1:$def
+
+for i in `seq 0 $BINS`
+do
+hex=`printf "%x" $i`
+${TC} class add dev $IFACE parent 1: classid 1:$hex qfq 
+${TC} qdisc add dev $IFACE parent 1:$hex handle $hex $BIGQDISC
+done
+
+# This matches all ip protocols and is one of three rules working
+
+${TC} filter add dev $IFACE protocol ip parent 1: handle 3 prio 96 \
+        flow hash keys proto-dst,rxhash divisor $BINS
+
+${TC} filter add dev $IFACE protocol ipv6 parent 1: handle 4 prio 97 \
+        flow hash keys proto-dst,rxhash divisor $BINS
+
+# And it turns out that you can match ipv6 separately
+
+# It's not clear I need to match this for the vlans.
+
+${TC} filter add dev $IFACE protocol 802_3 parent 1: prio 95 \
+       u32 match u16 0x0100 0x0100 at 0 flowid 1:$mcast
+
+${TC} filter add dev $IFACE protocol 802_3 parent 1: prio 101 \
+        flow hash keys proto-dst,rxhash divisor $BINS
+
