@@ -1,0 +1,17 @@
+#!/bin/sh
+# Probe for available latency reducing features
+# (eventually)
+
+echo "You do not have QFQ. Falling back to SFQ"
+
+echo "You do not have Byte Queue Limits. "
+
+echo "Your ethernet device does not support Byte Queue Limits"
+
+echo "Your ethernet device has a large TX ring by default"
+
+echo "Your wireless device sucks rocks"
+
+echo "You have no ANT or DSCP classifiers"
+
+
