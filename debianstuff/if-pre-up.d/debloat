@@ -1,0 +1,58 @@
+#!/bin/sh
+# As TSO and GSO offloads are 'bulk shipped' through the 
+# packet scheduler, we have no choice but to turn them
+# off completely here.
+# Most tx rings are grossly oversized and there are
+# problems in reducing them in many drivers.
+
+ETHERNET_TXQUEUELEN=100
+ETHERNET_TXRING=64
+WIRELESS_TXQUEUELEN=50
+WIRELESS_TXRING=16
+DEFAULTS=/etc/default/debloat
+ETHTOOL=/sbin/ethtool
+
+test -x $ETHTOOL || exit 0
+
+if [ -e $DEFAULTS ]
+then
+. $DEFAULTS
+fi
+
+# no point in debloating these
+# FIXME: But detecting the underlying interfaces on
+# a bridge is important.
+
+case $IFACE in
+	lo|ifb*|br*) exit 0 ;; 
+esac
+
+# Some drivers mis-report their status
+# so we just turn this stuff off
+# tcp-segmentation-offload: off
+# udp-fragmentation-offload: off
+# generic-segmentation-offload: off
+
+debloat_ethernet() {
+	$ETHTOOL -K $IFACE tso off # if you turn off tso
+	$ETHTOOL -K $IFACE gso off # gso rises to take it's place
+	$ETHTOOL -K $IFACE ufo off
+	# reduce tx ring on general principles
+	$ETHTOOL -G $IFACE tx $ETHERNET_TXRING 
+# FIXME, needs to happen even when don't have ethtool
+	ifconfig $IFACE txqueuelen $ETHERNET_TXQUEUELEN
+}
+
+debloat_wireless() {
+	ifconfig $IFACE txqueuelen WIRELESS_TXQUEUELEN
+}
+
+# Can't depend on wireless or wired's actual names
+
+if [ -h /sys/class/net/$IFACE/phy80211 ]
+then
+	debloat_wireless
+else
+	debloat_ethernet
+fi
+
