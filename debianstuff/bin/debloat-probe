@@ -10,8 +10,20 @@ echo "Your ethernet device does not support Byte Queue Limits"
 
 echo "Your ethernet device has a large TX ring by default"
 
+echo "Your version of iproute2 is too old"
+
+echo "TSO is on. This creates packet bursts."
+
+echo "GSO is on. This creates packet bursts."
+
+echo "UFO is on. This creates packet bursts."
+
 echo "Your wireless device sucks rocks"
 
 echo "You have no ANT or DSCP classifiers"
 
+echo "Your version of red is not adaptive"
 
+echo "You have tcp timestamping off"
+
+echo "Users cannot turn on tcp-lp or tcp-westwood"
