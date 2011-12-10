@@ -1,0 +1,13 @@
+# Parameters 
+# Needed is some sort of default gw abstraction
+# to key off of.
+
+LOCATION=ma:ac:ad:rr:::
+
+MACHTYPE=[desktop,router,server]
+DEBLOAT=[normal, aggressive, experimental, all]
+WIRELESS_TXQUEUELEN=50
+ETHERNET_TXQUEUELEN=50
+FQ=SFQ [ SFQ, QFQ, what? ]
+TORRENT=[0,1] # Try to make life easier when torrenting
+
