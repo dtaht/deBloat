@@ -34,6 +34,7 @@ static int DOWNLINK = 1000000;
 static int pingopt_top = 0;
 static int pingopt_machine = 0;
 
+
 void usage(int argc, char **argv, char *msg) {
   fprintf(stderr, msg);
   fprintf(stderr,
@@ -50,7 +51,7 @@ void usage(int argc, char **argv, char *msg) {
 "-G --subgroup filter"
 "-g --group filter"
 "-l --line-rate"
-"-i --interface" 
+
 	  );
   exit(-1);
 }
@@ -73,12 +74,68 @@ struct interface {
 int infer_speed(struct interface *iface) {
 }
 
+struct handle {
+  u16 major;
+  u16 minor;
+};
+
+typedef unsigned short u16;
+typedef handle handle_t;
+
+struct tc_class {
+  handle_t parent;
+  handle_t handle;
+  char *iface;
+  char *class;
+  char *qdisc;
+};
+
+typedef struct tc_class tc_class_t;
+
+fprintf(OUT,"class add dev %s parent %x classid %x:%x qfq\n",IFACE,BASE,BASE,multicast);
+
+
+fprintf(OUT,"qdisc add dev %s parent %x:%x handle %x %s\n",IFACE,BASE,multicast,multicast,BIGQDISC);
+fprintf(OUT,"class add dev %s parent %x: classid %x:%x qfq\n", IFACE, BASE, BASE, defbin);
+fprintf(OUT,"qdisc add dev %s parent %x:%x handle %x %s\n",IFACE,BASE,defbin,defbin,BIGQDISC);
+
+void class_minor(tc_class_t *tc) {
+  fprintf(OUT,"class add dev %s parent %x classid %x:%x %s\n",
+	  tc->iface,tc->parent.major,tc->handle.major,tc->handle.minor,tc->class);
+}  
+
+void qdisc_minor(tc_class_t *tc) {
+  fprintf(OUT,"qdisc add dev %s parent %x:%x handle %x %s\n",
+	  tc->iface,tc->parent.major,tc->parent_minor,tc->handle.major,tc->qdisc);
+}
+
+
 /* Some design notes: 
   If (linerate) | (uplink == 0 && downlink == 0) {
       we do not need to do cbq or tbf
       }
 
 */
+
+/* I still have to think about this more. I'm trying 
+   to get to where it's possible to write a more 
+   concise, descriptive thing of what you are trying
+   to do, 'solve' for it, and then generate correct
+   rules. AND not need gobs of memory to 'solve' for
+   it. */
+
+htb_sfq_qfq_red(char *iface, int machines, int bins) {
+  qdisc_t htb, sfq, red;
+  tc_class_t htbc[3]; 
+  htb.iface = sfq.iface = red.iface = iface;
+  htb.qdisc = "qfq"; 
+  if( machines ) {
+
+ } else {
+
+ }
+}
+
 
 main() {
   int i,j;
