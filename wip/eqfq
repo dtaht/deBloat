@@ -2,6 +2,8 @@
 TC=`which tc`
 IFACE=eth1
 BINS=256
+#  
+#BIGQDISC="pfifo_head_drop limit 24"
 BIGQDISC="pfifo limit 24"
 SCHEDULERS="sch_qfq sch_sfq cls_u32 cls_flow cls_basic cls_tcindex"
 for i in $SCHEDULERS
@@ -9,6 +11,12 @@ do
 insmod $i
 modprobe $i
 done
+
+# This is not correct. I was trying to find a bug
+# in drop_head, it appears... this should probably
+# be bandwidth * delay * sqrt(flows) instead of
+# being large enough to handle one packet per bin
+# + some overhead
 
 ifconfig $IFACE txqueuelen $(($BINS+42))
 
@@ -38,6 +46,8 @@ ${TC} filter add dev $IFACE protocol ip parent 1: prio 5 \
 ${TC} filter add dev $IFACE protocol ipv6 parent 1: prio 6 \
        u32 match u16 0x0100 0x0100 at -14 flowid 1:$mcast
 
+# This may be excessive, again found bug in drop head
+
 ${TC} filter add dev $IFACE protocol 802_3 parent 1: prio 997 \
        u32 match u16 0x0100 0x0100 at 0 flowid 1:$mcast
 
@@ -57,8 +67,6 @@ hex=`printf "%x" $i`
 ${TC} class add dev $IFACE parent 1: classid 1:$hex qfq 
 ${TC} qdisc add dev $IFACE parent 1:$hex $BIGQDISC
 done
-
-# This matches all ip protocols and is one of three rules working
 
 ${TC} filter add dev $IFACE protocol ip parent 1: handle 3 prio 97 \
         flow hash keys proto-dst,rxhash divisor $BINS
