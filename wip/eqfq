@@ -4,7 +4,7 @@ IFACE=eth0
 BINS=256
 BIGQDISC="bfifo limit 12000"
 
-${TC} qdisc del dev $IFACE handle 1 root
+${TC} qdisc del dev $IFACE root 2> /dev/null
 ${TC} qdisc add dev $IFACE handle 1 root qfq
 
 # Setting all this up is high overhead so lets
@@ -16,7 +16,7 @@ DEFAULTB=`expr $BINS + 2`
 mcast=`printf "%x" $MULTICAST`
 def=`printf "%x" $DEFAULTB`
 
-${TC} class add dev $IFACE parent 1: classid 1:$hex qfq 
+${TC} class add dev $IFACE parent 1: classid 1:$mcast qfq 
 ${TC} qdisc add dev $IFACE parent 1:$mcast handle $mcast $BIGQDISC
 
 ${TC} class add dev $IFACE parent 1: classid 1:$def qfq 
