@@ -1,10 +1,18 @@
 #!/bin/sh
-TC=~d/git/iproute2/tc/tc
-IFACE=eth0
+TC=`which tc`
+IFACE=eth1
 BINS=256
-BIGQDISC="bfifo limit 12000"
+BIGQDISC="pfifo_head_drop limit 24"
+SCHEDULERS="sch_qfq sch_sfq cls_u32 cls_flow cls_basic cls_tcindex"
+for i in $SCHEDULERS
+do
+insmod $i
+modprobe $i
+done
 
-${TC} qdisc del dev $IFACE root 2> /dev/null
+ifconfig $IFACE txqueuelen $(($BINS+42))
+
+${TC} qdisc del dev $IFACE root
 ${TC} qdisc add dev $IFACE handle 1 root qfq
 
 # Setting all this up is high overhead so lets
@@ -30,7 +38,15 @@ ${TC} filter add dev $IFACE protocol ip parent 1: prio 5 \
 ${TC} filter add dev $IFACE protocol ipv6 parent 1: prio 6 \
        u32 match u16 0x0100 0x0100 at -14 flowid 1:$mcast
 
-# And this is a catchall for everything else
+${TC} filter add dev $IFACE protocol 802_3 parent 1: prio 997 \
+       u32 match u16 0x0100 0x0100 at 0 flowid 1:$mcast
+
+${TC} filter add dev $IFACE protocol arp parent 1: prio 998 \
+	u32 match ip protocol 0 0x00 flowid 1:$mcast
+
+# This is a catchall for everything else
+# It's not clear that 802_3 has to be matched
+# It appears that arp has to be matched explicitly
 
 ${TC} filter add dev $IFACE protocol all parent 1: prio 999 \
 	u32 match ip protocol 0 0x00 flowid 1:$def
@@ -39,7 +55,7 @@ for i in `seq 0 $BINS`
 do
 hex=`printf "%x" $i`
 ${TC} class add dev $IFACE parent 1: classid 1:$hex qfq 
-${TC} qdisc add dev $IFACE parent 1:$hex handle $hex $BIGQDISC
+${TC} qdisc add dev $IFACE parent 1:$hex $BIGQDISC
 done
 
 # This matches all ip protocols and is one of three rules working
@@ -50,15 +66,6 @@ ${TC} filter add dev $IFACE protocol ip parent 1: handle 3 prio 97 \
 ${TC} filter add dev $IFACE protocol ipv6 parent 1: handle 4 prio 98 \
         flow hash keys proto-dst,rxhash divisor $BINS
 
-# And it turns out that you can match ipv6 separately
-
 exit
 
-# It's not clear I need to match this for the vlans.
-
-${TC} filter add dev $IFACE protocol 802_3 parent 1: prio 3 \
-       u32 match u16 0xFFFe 0xffff at 0 flowid 1:$mcast
-
-${TC} filter add dev $IFACE protocol 802_3 parent 1: prio 3 \
-       u32 match u16 0x0001 0xffff at 0 flowid 1:4
 
