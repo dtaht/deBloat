@@ -2,7 +2,7 @@
 TC=`which tc`
 IFACE=eth1
 BINS=256
-BIGQDISC="pfifo_head_drop limit 24"
+BIGQDISC="pfifo limit 24"
 SCHEDULERS="sch_qfq sch_sfq cls_u32 cls_flow cls_basic cls_tcindex"
 for i in $SCHEDULERS
 do
