@@ -1,0 +1,124 @@
+#!/bin/sh
+# bittorrent buster
+# This does QFQ across machines, and then QFQ inside each machine's stream
+
+#TC=~d/git/iproute2/tc/tc 
+TC=echo 
+IFACE=eth0
+MACHINES=256
+BINS=64 # at 16 bins it goes boom for some reason with default txqueuelen
+LIMIT=12
+BIGQDISC="pfifo limit $LIMIT"
+BASE=1
+# Yes, virginia, you actually need a txqueuelen
+# this long, unless you want to start tail dropping
+# at the queue itself. 
+
+TXQUEUELEN=`expr $BINS '*' $MACHINES '*' $LIMIT`
+
+# But Linux seems to get buggy at > 1000
+# And this of course induces starvation problems
+
+[ $TXQUEUELEN -gt 1000 ] && TXQUEUELEN=1000
+
+${TC} qdisc del dev $IFACE handle ${BASE} root
+ifconfig $IFACE txqueuelen $TXQUEUELEN 
+${TC} qdisc add dev $IFACE handle ${BASE} root qfq
+
+# Setting all this up is high overhead so lets
+# setup the the default bins first
+
+MULTICAST=`expr $MACHINES + 1`
+DEFAULTB=`expr $MACHINES + 2`
+
+mcast=`printf "%x" $MULTICAST`
+def=`printf "%x" $DEFAULTB`
+
+${TC} class add dev $IFACE parent ${BASE} classid ${BASE}:$mcast qfq 
+${TC} qdisc add dev $IFACE parent ${BASE}:$mcast handle $mcast $BIGQDISC
+
+${TC} class add dev $IFACE parent ${BASE}: classid ${BASE}:$def qfq 
+${TC} qdisc add dev $IFACE parent ${BASE}:$def handle $def $BIGQDISC
+
+# This is a catchall for everything while we setup
+
+${TC} filter add dev $IFACE protocol all parent ${BASE}: \
+       prio 999 u32 match ip protocol 0 0x00 flowid ${BASE}:$def
+
+#handle ${BASE}:$def \
+
+# Schedule all multicast/broadcast traffic in one bin
+# Multicast and broadcast are basically a 'machine', a very slow,
+# weird one.
+
+${TC} filter add dev $IFACE protocol 802_3 parent ${BASE}: prio 4 \
+       u32 match u16 0x0100 0x0100 at 0 flowid ${BASE}:$mcast
+
+${TC} filter add dev $IFACE protocol arp parent ${BASE}: prio 5 \
+       u32 match u16 0x0100 0x0100 at -14 flowid ${BASE}:$mcast
+
+${TC} filter add dev $IFACE protocol ip parent ${BASE}: prio 6 \
+       u32 match u16 0x0100 0x0100 at -14 flowid ${BASE}:$mcast
+
+${TC} filter add dev $IFACE protocol ipv6 parent ${BASE}: prio 7 \
+       u32 match u16 0x0100 0x0100 at -14 flowid ${BASE}:$mcast
+
+# Setup the per machine classes
+MACHSUBC=`expr $MACHINES + 3`
+MACHCLASS=`expr $MACHSUBC '*' 4`
+MACHSUBC=`expr $MACHSUBC '*' 2`
+FILTERS=10
+MACHSUBCX=`printf "%x" $MACHSUBC`
+MACHCLASSX=`printf "%x" $MACHCLASS`
+
+for i in `seq 0 $MACHINES`
+do
+MACHSUBC=`expr $MACHSUBC + 1`
+MACHCLASS=`expr $i + $MACHCLASS`
+hex=`printf "%x" $i`
+MACHSUBCX=`printf "%x" $MACHSUBC`
+MACHCLASSX=`printf "%x" $MACHCLASS`
+
+${TC} class add dev $IFACE parent ${BASE}: classid ${BASE}:$hex qfq 
+${TC} qdisc add dev $IFACE parent ${BASE}:$hex handle ${MACHSUBCX} qfq
+m=`expr $i + 100`
+for j in `seq 0 $BINS`
+do
+	b=`printf "%x" $j`
+	${TC} class add dev $IFACE parent ${MACHSUBCX}: classid ${MACHSUBCX}:$b qfq 
+	${TC} qdisc add dev $IFACE parent ${MACHSUBCX}:$b $BIGQDISC
+done
+
+# Add stream filters to the per machine qdiscs (they won't be active yet)
+# A different filter is needed for NAT outgoing interface
+
+FILTERS=`expr $FILTERS + 1`
+${TC} filter add dev $IFACE protocol ip parent ${MACHSUBCX}: \
+	handle $FILTERS prio 97 flow hash keys proto-src,rxhash divisor $BINS
+
+FILTERS=`expr $FILTERS + 1`
+${TC} filter add dev $IFACE protocol ipv6 parent ${MACHSUBCX}: \
+	handle $FILTERS prio 98 flow hash keys proto-src,rxhash divisor $BINS
+
+# And make ABSOLUTELY sure we capture everything we missed with the filters
+#FILTERS=`expr $FILTERS + 1`
+#${TC} filter add dev $IFACE protocol all parent ${MACHSUBCX}: \
+#       handle ${FILTERS} prio 999 u32 match ip protocol 0 0x00 \
+#       flowid ${$MACHSUBC}:$def
+
+done
+
+# And kick everything into action
+
+FILTERS=`expr $FILTERS + 1`
+
+${TC} filter add dev $IFACE protocol ip parent ${BASE}: handle $FILTERS  \
+        prio 97 flow hash keys src divisor $MACHINES
+
+FILTERS=`expr $FILTERS + 1`
+
+${TC} filter add dev $IFACE protocol ipv6 parent ${BASE}: handle $FILTERS \
+        prio 98 flow hash keys src divisor $MACHINES
+
+# Walla!
+

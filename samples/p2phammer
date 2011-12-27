@@ -1,0 +1,72 @@
+
+http://edseek.com/~jasonb/articles/traffic_shaping/scenarios.html
+
+# Hmm We can try to identify certain kinds of traffic and hammer it down at layer 7
+
+iptables -t mangle -A POSTROUTING -m layer7 --l7proto edonkey -j CLASSIFY --set-class 4:5
+iptables -t mangle -A POSTROUTING -m layer7 --l7proto fasttrack -j CLASSIFY --set-class 4:5
+iptables -t mangle -A POSTROUTING -m layer7 --l7proto gnutella -j CLASSIFY --set-class 4:5
+iptables -t mangle -A POSTROUTING -m layer7 --l7proto audiogalaxy -j CLASSIFY --set-class 4:5
+iptables -t mangle -A POSTROUTING -m layer7 --l7proto bittorrent -j CLASSIFY --set-class 4:5
+
+And then thoroughly deprioritize it.
+
+tc qdisc add dev eth0 root handle 1: htb default 90
+tc class add dev eth0 parent 1: classid 1:1 htb rate ${RATE}kbit ceil ${RATE}kbit
+
+tc class add dev eth0 parent 1:1 classid 1:10 htb rate 6000kbit ceil ${RATE}kbit
+tc class add dev eth0 parent 1:1 classid 1:20 htb rate 1000kbit ceil ${RATE}kbit
+tc class add dev eth0 parent 1:1 classid 1:50 htb rate 500kbit ceil ${RATE}kbit
+tc class add dev eth0 parent 1:1 classid 1:90 htb rate 500kbit ceil 500kbit
+
+tc qdisc add dev eth0 parent 1:10 handle 10: sfq perturb 10
+tc qdisc add dev eth0 parent 1:20 handle 20: sfq perturb 10
+tc qdisc add dev eth0 parent 1:50 handle 50: sfq perturb 10
+tc qdisc add dev eth0 parent 1:90 handle 90: sfq perturb 10
+
+Other bits of syntax
+
+tc filter add dev eth0 parent 1:0 protocol ip u32 match ip sport 80 0xffff classid 1:10
+tc filter add dev eth0 parent 1:0 protocol ip u32 match ip sport 22 0xffff classid 1:20
+tc filter add dev eth0 parent 1:0 protocol ip u32 match ip sport 25 0xffff classid 1:50
+tc filter add dev eth0 parent 1:0 protocol ip u32 match ip sport 110 0xffff classid 1:50
+
+And I really wanted to do this for both tcp syn, synack and the final packets above
+
+# Is our TOS broken? Fix it for TCP ACK and OpenSSH.
+
+iptables -t mangle -A POSTROUTING -p tcp -m tcp --tcp-flags SYN,RST,ACK ACK -j ack
+iptables -t mangle -A POSTROUTING -p tcp -m tos --tos Minimize-Delay -j tosfix
+
+# Here we deal with ACK, SYN, and RST packets
+
+# Match SYN and RST packets
+iptables -t mangle -A POSTROUTING -o $LOCALIF -p tcp -m tcp --tcp-flags ! SYN,RST,ACK ACK \
+        -j CLASSIFY --set-class 2:1
+
+# Match ACK packets
+iptables -t mangle -A POSTROUTING -o $LOCALIF -p tcp -m tcp --tcp-flags SYN,RST,ACK ACK \
+        -m length --length :128 -m tos --tos Minimize-Delay \
+        -j CLASSIFY --set-class 2:1
+
+# Match packets with TOS Minimize-Delay
+iptables -t mangle -A POSTROUTING -o $LOCALIF -p tcp -m tos --tos Minimize-Delay \
+        -j CLASSIFY --set-class 2:1
+
+### Actual traffic shaping classifications with CLASSIFY
+
+# ICMP (ping)
+
+iptables -t mangle -A POSTROUTING -o $LOCALIF -p icmp -j CLASSIFY --set-class 2:1
+
+# Outbound client requests for HTTP, IRC and AIM (dport matches)
+
+iptables -t mangle -A POSTROUTING -o $LOCALIF -p tcp --dport 80 -j CLASSIFY --set-class 2:2
+iptables -t mangle -A POSTROUTING -o $LOCALIF -p tcp --dport 6667 -j CLASSIFY --set-class 2:2
+iptables -t mangle -A POSTROUTING -o $LOCALIF -p tcp --dport 5190 -j CLASSIFY --set-class 2:2
+
+# Enemy Territory (UDP, realtime gaming packets)
+
+iptables -t mangle -A POSTROUTING -o $LOCALIF -p udp --dport 27960:27970 \
+        -j CLASSIFY --set-class 2:2
+

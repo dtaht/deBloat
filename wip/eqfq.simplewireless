@@ -1,0 +1,62 @@
+#!/bin/sh
+TC=~d/git/iproute2/tc/tc
+IFACE=wlan0
+BINS=256
+BIGQDISC="bfifo limit 12000"
+BASE=1
+
+printf "qdisc del dev $IFACE handle 1 root\n" | ${TC} -b
+printf "qdisc add dev $IFACE handle 1 root qfq\n"
+
+# Setting all this up is high overhead so lets
+# setup the the default bins first
+
+MULTICAST=`expr $BINS + 1`
+DEFAULTB=`expr $BINS + 2`
+
+printf "class add dev $IFACE parent 1: classid $BASE:%x qfq\n" $MULTICAST
+printf "qdisc add dev $IFACE parent $BASE:%x handle %x $BIGQDISC\n" $MULTICAST $MULTICAST
+
+printf "class add dev $IFACE parent 1: classid 1:%x qfq\n" $DEFAULTB
+printf "qdisc add dev $IFACE parent 1:%x handle %x $BIGQDISC\n" $DEFAULTB $DEFAULTB
+
+# Schedule all multicast traffic in one bin
+
+printf "filter add dev $IFACE protocol ip parent 1: prio 5 \
+       u32 match u16 0x0100 0x0100 at -14 flowid 1:%x\n" $MULTICAST
+
+printf "filter add dev $IFACE protocol ipv6 parent 1: prio 6 \
+       u32 match u16 0x0100 0x0100 at -14 flowid 1:%x\n" $MULTICAST
+
+# And this is a catchall for everything else
+
+printf "filter add dev $IFACE protocol all parent 1: prio 999 \
+	u32 match ip protocol 0 0x00 flowid 1:%x\n" $DEFAULTB
+
+B=10
+for i in `seq 0 $BINS`
+do
+printf "class add dev $IFACE parent 1: classid 1:%x qfq\n" $i
+printf "qdisc add dev $IFACE parent 1:%x handle $B:%x $BIGQDISC\n" $i $i
+done
+
+# This matches all ip protocols and is one of three rules working
+
+printf "filter add dev $IFACE protocol ip parent 1: handle 3 prio 97 \
+        flow hash keys proto-dst,rxhash divisor $BINS\n"
+
+printf "filter add dev $IFACE protocol ipv6 parent 1: handle 4 prio 98 \
+        flow hash keys proto-dst,rxhash divisor $BINS\n"
+
+# And it turns out that you can match ipv6 separately
+
+exit
+
+# It's not clear I need to match this for the vlans.
+
+printf "filter add dev $IFACE protocol 802_3 parent 1: prio 3 \
+       u32 match u16 0xFFFe 0xffff at 0 flowid 1:$mcast\n"
+
+printf "filter add dev $IFACE protocol 802_3 parent 1: prio 3 \
+       u32 match u16 0x0001 0xffff at 0 flowid 1:4\n"
+

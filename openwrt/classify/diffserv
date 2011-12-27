@@ -1,0 +1,18 @@
+#!/bin/sh
+
+doiptables() {
+local i
+for i in iptables ip6tables
+do
+$i $1
+done
+
+setup_wireless() {
+doiptables "-o wl+ -j 80211E"
+doiptables "-o gw+ -j 80211E"
+doiptables "-o sw+ -j 80211E"
+}
+
+setup_ethernet() {
+doiptables "-o et+ -j 8021D"
+}

@@ -1,0 +1,18 @@
+void usage(int argc, char **argv, char *msg) {
+  fprintf(stderr, msg);
+  fprintf(stderr,
+"-m --machines\n"
+"-b --bins\n"
+"-t --type\n"
+"-u --uplink\n"
+"-d --downlink\n"
+"-b --burst\n"
+"-i --iface\n"
+"-p --pingopt\n"
+"-M --mtu\n"
+"-A --algorithm\n"
+"-G --subgroup filter"
+"-g --group filter"
+"-l --line-rate"
+"-i --interface"
+

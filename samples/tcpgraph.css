@@ -1,0 +1,21 @@
+*     { margin: 0; padding: 0 }
+body  { width: 600px; background-color: white;
+	font-family: sans-serif;
+	font-size: 12pt;
+	margin: 0 auto }
+h1    { margin-top: 20px; margin-bottom: 30px;
+        text-align: center; color: #c30 }
+h2    { background-color: #ddd;
+	padding: 2px 0 2px 4px }
+hr    { height: 1px;
+	border: 0;
+	border-top: 1px solid #aaa }
+table { border: 0px; width: 100%; color: #c30 }
+img   { border: 0 }
+a     { text-decoration: none; color: #09f }
+a:hover  { text-decoration: underline; }
+#jump    { margin: 0 0 10px 4px }
+#jump li { list-style: none; display: inline;
+           font-size: 90%; }
+#jump li:after            { content: "|"; }
+#jump li:last-child:after { content: ""; }

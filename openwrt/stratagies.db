@@ -1,0 +1,8 @@
+TAG 	    Strategy
+80211-AP    mq_sfq
+80211-AP-g  mq_sfq
+80211-STA-g mq_qfq
+80211-STA   mq_qfq
+80211s      mq_sfq
+80211-Adhoc mq_qfq
+
