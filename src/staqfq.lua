@@ -61,11 +61,8 @@ if (IFACE == nil) then
    os.exit(-1) 
 end
 
-ETHTOOL='/sbin/ethtool'
-
 -- FIXME - use modprobe on linux, insmod on openwrt
 
-INSMOD='/sbin/modprobe'
 QMODEL='qfq'
 
 PREREQS = { 'sch_qfq', 'cls_u32', 'cls_flow' }
@@ -76,34 +73,6 @@ if (IFACE == nil) then
 end
 
 -- Override various defaults with env vars
-
-if os.getenv("TC") ~= nil then TC=os.getenv("TC") end
-if os.getenv("MDISC") ~= nil then MDISC=os.getenv("MDISC") end
-if os.getenv("BIGDISC") ~= nil then BIGDISC=os.getenv("BIGDISC") end
-if os.getenv("NORMDISC") ~= nil then NORMDISC=os.getenv("NORMDISC") end
-if os.getenv("BINS") ~= nil then BINS=os.getenv("BINS") end
-if os.getenv("MAX_HWQ_BYTES") ~= nil then MAX_HWQ_BYTES=os.getenv("MAX_HWQ_BYTES") end
-if os.getenv("ETHTOOL") ~= nil then ETHTOOL=os.getenv("ETHTOOL") end
-if os.getenv("NATTED") ~= nil then NATTED=os.getenv("NATTED") end
-if os.getenv("QMODEL") ~= nil then QMODEL=os.getenv("QMODEL") end
-
--- Maltreat multicast especially. When handed to a load balancing 
--- filter based on IPs, multicast addresses are all over the map.
--- It would be trivial to do a DOS with this multi-bin setup
--- So we toss all multicast into a single bin all it's own.
-
-MULTICAST=BINS+1
-
--- You can do tricks with the DEFAULTB concept, creating a filter
--- to optimize for ping, for example, which makes tests reproducable
--- Another example would be to set aside bins for voip
--- or dns, etc. Still, it's saner to just let the filter
--- do all the work of finding a decent bin
-
--- The only purpose at the moment is to have a safe place
--- to put packets until all the filters and bins are setup.
-
-DEFAULTB=BINS+2
 
 -- Some utility functions
 
@@ -134,23 +103,73 @@ function interface_type(iface)
 return ('ethernet')
 end
 
+local function is_openwrt() 
+   if file_exists("/etc/uci-defaults") then return true else return false end
+end
+
+--[ Need to think on this
+local function check_prereq(prereqs) 
+   if is_openwrt() then 
+      for i,v in prereqs do end
+   else
+      for i,v in prereqs do end
+   end
+end
+--]
+
+if is_openwrt() then
+   INSMOD="/sbin/insmod"
+   ETHTOOL="/usr/sbin/ethtool"
+else
+   INSMOD="/sbin/modprobe"
+   ETHTOOL="/sbin/ethtool"
+end
+
+FORCE_100MBIT=false
+
+--[ I miss LISP. There's got to be a way to lookup the self name...
+local function defaults(param)
+   if os.getenv(param) ~= nil then return os.getenv(param) else return valueof(param) end
+end
+--]
+
+if os.getenv("TC") ~= nil then TC=os.getenv("TC") end
+if os.getenv("MDISC") ~= nil then MDISC=os.getenv("MDISC") end
+if os.getenv("BIGDISC") ~= nil then BIGDISC=os.getenv("BIGDISC") end
+if os.getenv("NORMDISC") ~= nil then NORMDISC=os.getenv("NORMDISC") end
+if os.getenv("BINS") ~= nil then BINS=os.getenv("BINS") end
+if os.getenv("MAX_HWQ_BYTES") ~= nil then MAX_HWQ_BYTES=os.getenv("MAX_HWQ_BYTES") end
+if os.getenv("ETHTOOL") ~= nil then ETHTOOL=os.getenv("ETHTOOL") end
+if os.getenv("NATTED") ~= nil then NATTED=os.getenv("NATTED") end
+if os.getenv("QMODEL") ~= nil then QMODEL=os.getenv("QMODEL") end
+if os.getenv("FORCE_100MBIT") ~= nil then FORCE_100MBIT=os.getenv("FORCE_100MBIT") end
+
+-- Maltreat multicast especially. When handed to a load balancing 
+-- filter based on IPs, multicast addresses are all over the map.
+-- It would be trivial to do a DOS with this multi-bin setup
+-- So we toss all multicast into a single bin all it's own.
+
+MULTICAST=BINS+1
+
+-- You can do tricks with the DEFAULTB concept, creating a filter
+-- to optimize for ping, for example, which makes tests reproducable
+-- Another example would be to set aside bins for voip
+-- or dns, etc. Still, it's saner to just let the filter
+-- do all the work of finding a decent bin
+
+-- The only purpose at the moment is to have a safe place
+-- to put packets until all the filters and bins are setup.
+
+DEFAULTB=BINS+2
+
+local function ethtool(...)
+   os.execute(string.format("%s %s",ETHTOOL,string.format(...)))
+end
+
 -- Under most workloads there doesn't seem to be a need
 -- to reduce txqueuelen. Reducing the bql tx ring to 64
 -- along with a byte limit of 4500 gives a nice symmetry:
 -- 60+ ACKS or 3 big packets.
-
--- TSO does terrible things to the scheduler
--- GSO does as well
--- UFO is not a feature of most devices
-
-local function ethernet_setup(iface) 
-   os.execute(string.format("%s -G %s tx 64",ETHTOOL,iface))
-   os.execute(string.format("%s -K %s gso off",ETHTOOL,iface))
-   os.execute(string.format("%s -K %s tso off",ETHTOOL,iface))
-   os.execute(string.format("%s -K %s ufo off",ETHTOOL,iface))
--- for testing, limit ethernet to 100Mbit
-   os.execute(string.format("%s -s %s advertise 0x008",ETHTOOL,iface))
-end
 
 -- FIXME: Handle multi queued interfaces
 
@@ -162,6 +181,22 @@ local function bql_setup(iface)
    else
       print("Your system does not support byte queue limits")
    end
+end
+
+-- TSO does terrible things to the scheduler
+-- GSO does as well
+-- UFO is not a feature of most devices
+
+local function ethernet_setup(iface)
+-- for testing, limit ethernet to 100Mbit
+   if FORCE_100MBIT then
+      ethtool("-s %s advertise 0x008",iface)
+      ethtool("-G %s tx 64",iface)
+      bql_setup(iface)
+   end
+   ethtool("-K %s gso off",iface)
+   ethtool("-K %s tso off",iface)
+   ethtool("-K %s ufo off",iface)
 end
 
 -- if type(arg) == 'table' foreach arg self(arg)
@@ -271,7 +306,6 @@ end
 
 local function ethernet()
    ethernet_setup(IFACE)
-   bql_setup(IFACE)
    qa("handle %x root qfq",10)
    model_qfq_pfifo_fast(10)
 end
