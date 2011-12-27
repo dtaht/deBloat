@@ -66,6 +66,7 @@ ETHTOOL='/sbin/ethtool'
 -- FIXME - use modprobe on linux, insmod on openwrt
 
 INSMOD='/sbin/modprobe'
+QMODEL='qfq'
 
 PREREQS = { 'sch_qfq', 'cls_u32', 'cls_flow' }
 
@@ -84,6 +85,7 @@ if os.getenv("BINS") ~= nil then BINS=os.getenv("BINS") end
 if os.getenv("MAX_HWQ_BYTES") ~= nil then MAX_HWQ_BYTES=os.getenv("MAX_HWQ_BYTES") end
 if os.getenv("ETHTOOL") ~= nil then ETHTOOL=os.getenv("ETHTOOL") end
 if os.getenv("NATTED") ~= nil then NATTED=os.getenv("NATTED") end
+if os.getenv("QMODEL") ~= nil then QMODEL=os.getenv("QMODEL") end
 
 -- Maltreat multicast especially. When handed to a load balancing 
 -- filter based on IPs, multicast addresses are all over the map.
@@ -103,94 +105,33 @@ MULTICAST=BINS+1
 
 DEFAULTB=BINS+2
 
--- TC tends to be repetitive and hard to read
--- So this shortens things considerably by doing
--- the "{class,qdisc,filter} add dev %s" for us
--- Constructing something that was ** reversible **
--- and cleaner to express would be better that this
+-- Some utility functions
 
-local castring=string.format("class add dev %s %%s\n",IFACE)
-local fastring=string.format("filter add dev %s %%s\n",IFACE)
-local qastring=string.format("qdisc add dev %s %%s\n",IFACE)
-
-local function ca(...) 
-      return tc:write(string.format(castring,string.format(...))) 
+function file_exists(name)
+   local f=io.open(name,"r")
+   if f~=nil then io.close(f) return true else return false end
 end
 
-local function fa(...) 
-      return tc:write(string.format(fastring,string.format(...))) 
-end
+-- FIXME: quiet the warnings
 
-local function qa(...) 
-      return tc:write(string.format(qastring,string.format(...))) 
-end
-
--- Create a bin attached to the parent class
-
-local function cb(base,bin,disc)
-   ca("parent %x classid %x:%x qfq",base,base,bin)
-   qa("parent %x:%x %s",base,bin,disc)
-end
-
--- FIXME: It would be nice to have a cleaner way to match all multicast
--- Not, incidentally, that this actually works.
-
-local function fa_mcast(parent) 
-   fa("protocol ip parent %x: prio 5 u32 match u16 0x0100 0x0100 at -14 flowid %x:%x",parent,parent,MULTICAST)
-   fa("protocol ipv6 parent %x: prio 6 u32 match u16 0x0100 0x0100 at -14 flowid %x:%x",parent,parent,MULTICAST)
-   fa("protocol arp parent %x: prio 7 u32 match u16 0x0100 0x0100 at -14 flowid %x:%x",parent,parent,MULTICAST)
-end
-
-local function fa_defb(parent) 
-   fa("protocol all parent %x: prio 999 u32 match ip protocol 0 0x00 flowid %x:%x",parent,parent,DEFAULTB)
-end
-
--- FIXME: This needs a correct hash for natted sources when NATTED=y and ipv6
-
-local function fa_bins(parent)
-if NATTED == 'y' then
-   fa("protocol ipv6 parent %x: handle 3 prio 94 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
-   fa("protocol all parent %x: handle 3 prio 97 flow hash keys proto-dst,nfct-src divisor %d",parent,BINS)
-else
-   fa("protocol all parent %x: handle 3 prio 97 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
-end
--- At one point I was trying to handle ipv6 separately
--- fa("protocol ipv6 parent %x: handle 4 prio 98 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
-end
-
-local function q_bins(parent)
-   for i=0,BINS
-   do
-      ca("parent %x: classid %x:%x qfq",parent,parent,i) 
-      qa("parent %x:%x %s",parent,i,BIGDISC)
+function kernel_prereqs(prereqs)
+   for i,v in ipairs(prereqs) do
+      os.execute(string.format("%s %s",INSMOD,v))
    end
 end
 
--- Wireless devices are multi-queued
+-- can't depend on 'wlan or eth' patterns, so try sysfs
+-- FIXME: This needs to be made smarter and detect other forms
+-- of tunnel.
 
-local function wireless()
-   VO=0x10; VI=0x20; BE=0x30; BK=0x40
-   local QUEUES = { BE, VO, VI, BK }
-   
-   qa("handle 1 root mq")
-   qa("parent 1:1 handle %x qfq",VO)
-   qa("parent 1:2 handle %x qfq",VI)
-   qa("parent 1:3 handle %x qfq",BE)
-   qa("parent 1:4 handle %x qfq",BK)
-   
-   -- FIXME: We must get ALL multicast out of the other queues
-   -- and into the VO queue. Always. Somehow.-
-
-   for i,v in ipairs(QUEUES) do
-       cb(v,MULTICAST,MDISC)
-       cb(v,DEFAULTB,NORMDISC)
-       fa_defb(v)
-       fa_mcast(v)
-       -- Build tree
-       q_bins(v)
-       -- turn on filters
-       fa_bins(v)
-   end
+function interface_type(iface)
+   if iface == 'lo' then return('localhost') end
+   if string.sub(iface,1,3) == 'ifb' then return('ifb') end
+   --   if string.find(iface,'.') ~= nil then return('vlan') end syntax issue fixme
+   if string.sub(iface,1,3) == 'gre' then return('tunnel') end
+   if string.sub(iface,1,2) == 'br' then return('bridge') end
+   if file_exists(string.format("/sys/class/net/%s/phy80211/name",iface)) then return ('wireless') end
+return ('ethernet')
 end
 
 -- Under most workloads there doesn't seem to be a need
@@ -223,52 +164,116 @@ local function bql_setup(iface)
    end
 end
 
+-- if type(arg) == 'table' foreach arg self(arg)
+-- Some TC helpers
+
+-- TC tends to be repetitive and hard to read
+-- So this shortens things considerably by doing
+-- the "{class,qdisc,filter} add dev %s" for us
+-- Constructing something that was ** reversible **
+-- and cleaner to express would be better that this
+
+local castring=string.format("class add dev %s %%s\n",IFACE)
+local fastring=string.format("filter add dev %s %%s\n",IFACE)
+local qastring=string.format("qdisc add dev %s %%s\n",IFACE)
+
+local function ca(...) 
+      return tc:write(string.format(castring,string.format(...))) 
+end
+
+local function fa(...) 
+      return tc:write(string.format(fastring,string.format(...))) 
+end
+
+local function qa(...) 
+      return tc:write(string.format(qastring,string.format(...))) 
+end
+
+-- QFQ: Create a bin attached to the parent class
+
+local function cb(base,bin,disc)
+   ca("parent %x classid %x:%x qfq",base,base,bin)
+   qa("parent %x:%x %s",base,bin,disc)
+end
+
+-- FIXME: It would be nice to have a cleaner way to match all multicast
+
+local function fa_mcast(parent) 
+   fa("protocol ip parent %x: prio 5 u32 match u8 0x01 0x01 at -14 flowid %x:%x",parent,parent,MULTICAST)
+   fa("protocol ipv6 parent %x: prio 6 u32 match u8 0x01 0x01 at -14 flowid %x:%x",parent,parent,MULTICAST)
+   fa("protocol arp parent %x: prio 7 u32 match u8 0x01 0x01 at -14 flowid %x:%x",parent,parent,MULTICAST)
+end
+
+local function fa_defb(parent) 
+   fa("protocol all parent %x: prio 999 u32 match ip protocol 0 0x00 flowid %x:%x",parent,parent,DEFAULTB)
+end
+
+-- FIXME: This needs a correct hash for natted sources when NATTED=y and ipv6
+
+local function fa_bins(parent)
+if NATTED == 'y' then
+   fa("protocol ipv6 parent %x: handle 3 prio 94 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
+   fa("protocol all parent %x: handle 3 prio 97 flow hash keys proto-dst,nfct-src divisor %d",parent,BINS)
+else
+   fa("protocol all parent %x: handle 3 prio 97 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
+end
+-- At one point I was trying to handle ipv6 separately
+-- fa("protocol ipv6 parent %x: handle 4 prio 98 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
+end
+
+local function q_bins(parent)
+   for i=0,BINS
+   do
+      ca("parent %x: classid %x:%x qfq",parent,parent,i) 
+      qa("parent %x:%x %s",parent,i,BIGDISC)
+   end
+end
+
+
 -- FIXME: add HTB rate limiter support for a hm gateway
+-- What we want are various models expressed object orientedly
+-- so we can tie them together eventually
+
+local function model_qfq_pfifo_fast(base)
+   cb(base,MULTICAST,MDISC)
+   cb(base,DEFAULTB,NORMDISC)
+   fa_defb(base)
+   fa_mcast(base); 
+   q_bins(base);
+   fa_bins(base); 
+end
+
+local function model_sfq(base)
+   qa("parent %x sfq",base)
+end
+
+-- Wireless devices are multi-queued
+-- recursion would be better and if we can get away from globals
+-- we can make it possible to do red, etc
+
+local function wireless()
+   VO=0x10; VI=0x20; BE=0x30; BK=0x40
+   local QUEUES = { BE, VO, VI, BK }
+   
+   qa("handle 1 root mq")
+   qa("parent 1:1 handle %x qfq",VO)
+   qa("parent 1:2 handle %x qfq",VI)
+   qa("parent 1:3 handle %x qfq",BE)
+   qa("parent 1:4 handle %x qfq",BK)
+   
+   -- FIXME: We must get ALL multicast out of the other queues
+   -- and into the VO queue. Always. Somehow.-
+
+   for i,v in ipairs(QUEUES) do
+      model_qfq_pfifo_fast(v)
+   end
+end
 
 local function ethernet()
    ethernet_setup(IFACE)
    bql_setup(IFACE)
-   BASE=10
-   qa("handle %x root qfq",BASE)
-   
-   -- Treat multicast specially
-
-   cb(BASE,MULTICAST,MDISC)
-   cb(BASE,DEFAULTB,NORMDISC)
-   fa_defb(BASE)
-   fa_mcast(BASE); 
-   q_bins(BASE);
-   
--- Turn on filters
-   fa_bins(BASE); 
-   
-end
-
-function file_exists(name)
-   local f=io.open(name,"r")
-   if f~=nil then io.close(f) return true else return false end
-end
-
--- FIXME: quiet the warnings
-
-function kernel_prereqs()
-   for i,v in ipairs(PREREQS) do
-      os.execute(string.format("%s %s",INSMOD,v))
-   end
-end
-
--- can't depend on 'wlan or eth' patterns, so try sysfs
--- FIXME: This needs to be made smarter and detect other forms
--- of tunnel.
-
-function interface_type(iface)
-   if iface == 'lo' then return('localhost') end
-   if string.sub(iface,1,3) == 'ifb' then return('ifb') end
-   --   if string.find(iface,'.') ~= nil then return('vlan') end syntax issue fixme
-   if string.sub(iface,1,3) == 'gre' then return('tunnel') end
-   if string.sub(iface,1,2) == 'br' then return('bridge') end
-   if file_exists(string.format("/sys/class/net/%s/phy80211/name",iface)) then return ('wireless') end
-return ('ethernet')
+   qa("handle %x root qfq",10)
+   model_qfq_pfifo_fast(10)
 end
 
 -- And away we go
@@ -277,7 +282,7 @@ end
 itype=interface_type(IFACE)
 
 if itype == 'wireless' or itype == 'ethernet' then
-   kernel_prereqs()
+   kernel_prereqs(PREREQS)
    os.execute(string.format("tc qdisc del dev %s root",IFACE))
    tc=io.popen(TC,'w')
    if itype == 'wireless' then wireless() end
