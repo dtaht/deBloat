@@ -133,6 +133,7 @@ local function cb(base,bin,disc)
 end
 
 -- FIXME: It would be nice to have a cleaner way to match all multicast
+-- Not, incidentally, that this actually works.
 
 local function fa_mcast(parent) 
    fa("protocol ip parent %x: prio 5 u32 match u16 0x0100 0x0100 at -14 flowid %x:%x",parent,parent,MULTICAST)
