@@ -1,0 +1,47 @@
+* I had scribbled down some results from the last run
+
+I need to get better at producing data and presenting it.
+This is the outline of what a test series will look like when
+I'm done.
+
+(and my latest kernels stop crashing)
+
+* 100Mbit ethernet tests
+
+The numbers collected below are real...
+
+TCP_RR alone: 4123
+Single iperf: 94.1Mbit
+
+|options|bw|tcp_rr|
+|gso+tso+txqueue 1000+tx ring 256+pfifo_fast|94|4|
+-- |gso+tso+txqueue 1000+tx ring 256+sfq|||
+-- |-gso,-tso+txqueue 1000+tx ring 256+pfifo_fast |||
+|-gso,-tso+txqueue 1000+tx ring 64+bql limit of 4500+sfq  |93.4|431|
+
+This last is what you would want with 11 streams competing in this way. 
+But it doesn't tell the whole story. 
+
+There is one TCP_RR stream competing against 10 iperf streams in this case
+
+Extending the first and last tests, to include 10 TCP_RR streams,
+and summing the total TCP_RR streams:
+
+-- |gso+tso+txqueue 1000+tx ring 256+pfifo_fast|||
+-- |gso+tso+txqueue 1000+tx ring 256+pfifo_fast|||
+
+Lest you think that oh, god, it's the 10 iperf streams making the first test so bad,
+this is one iperf stream vs TCP_RR, in both configurations.
+
+-- finish me
+
+Further tests during this run...
+
+a timed (cached) nslookup takes 320ms, vs 20ms
+
+
+In summary:
+BQL is the cat's pajamas
+BQL's adaptive controller may need work
+GSO/TSO severely damage latency under load
+SFQ and QFQ rock

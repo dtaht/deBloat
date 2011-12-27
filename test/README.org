@@ -1,0 +1,15 @@
+* Various ad-hoc bufferbloat-related tests I run.
+
+I need to build a comprehensive test infrastructure others can run.
+
+I use the following in various ways. Usually I'll setup iperf to run
+10 times in the background, then use things like ping or the TCP_RR test
+for netperf or ab (ab is VERY convincing, btw) - and so on.
+
+iperf
+netperf
+ab (apache benchmark)
+ping
+fping
+shaperprobe
+
