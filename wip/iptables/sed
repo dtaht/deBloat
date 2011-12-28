@@ -1,0 +1,14 @@
+People like web interfaces for some reason. 
+
+So you wanna change the default routing scheme
+
+You COULD do it via the web interface, changing the babel configuration
+changing he network interfaces, by clicking on a lot of stuff, ahcp,
+etc...
+
+OR you could just login to the router and, assuming X.Y is your new address...
+
+sed -i 's/30.42/X.Y/gp' /etc/config/*; reboot; exit
+
+Your choice.
+

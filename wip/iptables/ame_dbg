@@ -1,0 +1,20 @@
+#!/bin/sh
+#Debug code in place
+. ./codepoints.sh
+. ./functions.sh
+. ./ame.conf
+. ./user.conf
+
+DEBUG_LOG=/tmp/ame.$$
+dscp_stats=1
+ecn_stats=1
+icmp6_stats=1
+p80_stats=1
+
+case $1 in 
+    up) start ;;
+    down) stop ;;
+    restart) restart ;;
+    status) status ;;
+    help) help;;
+esac

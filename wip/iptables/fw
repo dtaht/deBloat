@@ -1,0 +1,305 @@
+#!/bin/sh
+# CEROWRT firewall rules
+# See documentation for details
+
+FWTOOLS="iptables ip6tables"
+NATDEVS="ge0+" # Allow multiple nats
+DEBUG_LOG=/dev/null
+CONNTRACK=1
+BLOCK_RFC1918_OUT=2
+FWCHATTY=2
+FWLOG=1
+RFC1918="192.168.0.0/16 172.16.0.0/12 10.0.0.0/8" 
+BLOCK_NETS="$RFC1918"
+MCAST=""
+
+# Do we have secured networks and/or a DMZ?
+
+SYSDDIR=/sys/class/net
+HAVE_S=`ls -d $SYSDDIR/s* 2> /dev/null | wc -l`
+HAVE_D=`ls -d $SYSDDIR/d* 2> /dev/null | wc -l`
+HAVE_G=`ls -d $SYSDDIR/g* 2> /dev/null | wc -l`
+
+# Make sure nat devs exist
+
+HAVE_N=0
+
+if [ ! -z "$NATDEVS" ] 
+then
+local dcheck=`echo $NATDEVS | tr + \*`
+HAVE_N=`ls -d $SYSDDIR/$dcheck 2> /dev/null | wc -l`
+fi
+
+# FIXME, USE IPSET if available
+# nethash
+# FIXME, SELECTIVELY DROP
+# IPv6 supported by ipsets?
+
+rfc1918_check(){
+    local CHAIN=$1
+    local SET=$2
+    local NETS=$3
+    local d
+    if [ "$HAVE_IPSET" = "1" ]
+    then
+	ipset --create $table nethash
+        for d in $NETS
+	do
+	ipset --add $CHAIN $d
+	done
+    iptables -A $CHAIN -m set --match-set $SET -j REJECT
+    else
+        for d in $NETS
+    do
+        iptables -A $CHAIN -d $d -j REJECT
+    done
+    fi
+}
+
+create_filter_if_not_exist() {
+    local iptables=$1
+    local filter=$2
+    local chain=$3
+    $iptables -t $filter -F $chain 2>> $DEBUG_LOG
+    $iptables -t $filter -X $chain 2>> $DEBUG_LOG
+    $iptables -t $filter -N $chain 2>> $DEBUG_LOG
+}
+
+recreate_filter() {
+    local iptables=$1
+    local filter=$2
+    local chain=$3
+    $iptables -t $filter -F $chain 2>> $DEBUG_LOG
+    $iptables -t $filter -X $chain 2>> $DEBUG_LOG
+    $iptables -t $filter -N $chain 2>> $DEBUG_LOG
+}
+
+
+# Multiport matches support 16 total ports
+# But this includes ":" port range syntax, which counts as 2
+
+calc_multiport() {
+	local ports=$1
+	local range=""
+	local c=0
+	local plist=""
+	local i
+	local t
+	range=`echo $ports | tr , \ `
+	for i in $range
+	do
+		t=`echo $i | tr : \  | wc -w`			
+		if [ "$t" -ne '1' ]
+		then
+			c=$(($c + 2))
+		else
+			c=$(($c + 1))
+		fi
+	if [ "$c" -gt 15 ]
+	then
+		plist="${plist}\n$i"
+		c=$(($c - 15))	
+	else
+		case $c in
+		     1) plist="${plist}$i" ;;
+		     2) [ "$t" = "1" ] && plist="${plist},$i" ;
+		        [ "$t" = "2" ] && plist="${plist}$i" ;;
+		     *) plist="${plist},$i" ;;
+		esac
+	fi
+	done
+	echo $plist
+}
+
+multiport_test() {
+	A="1,2,3,4,5,6,7,8,9,10,11,12,13" 
+	echo "Should output one line"
+	calc_multiport "$A,14,15"
+	echo "Should output two lines"
+	calc_multiport "$A,14,15,16"
+	echo "Should output one line"
+	calc_multiport "$A,15:16"
+	echo "Should output two lines"
+	calc_multiport "$A,14,15:16,2"
+	echo "Should output one line"
+	calc_multiport "1:2,3:4,5:6,7:8,9:10,11:12,13:14,15"
+	echo "Should output two lines"
+	calc_multiport "1:2,3:4,5:6,7:8,9:10,11:12,13:14,15:16,17,18:19"
+}
+
+# ALWAYS be chatty. Filter out, block, or throttle the ICMP messages *later*
+# network-unreachable
+# host-unreachable
+# network-prohibited
+# host-prohibited
+# What the heck is I've always kind of wondered what source-quench would do nowadays
+# timestamp-request?
+
+
+threats() {
+	  local iptables=$1
+	  local target=$2
+
+	  recreate_filter $iptables mangle $target
+	  calc_multiport "81" | while read x
+	  do
+	  	  $iptables -t mangle -A $target -p tcp -m multiport --dports $x -j REJECT --reject-with icmp-admin-prohibited
+          done
+}
+
+
+setup() {
+local iptables
+for iptables in $FWTOOLS
+do
+
+$iptables --policy INPUT ACCEPT
+$iptables --policy OUTPUT ACCEPT
+$iptables --policy FORWARD ACCEPT
+# $iptables -i g+ --policy INPUT ACCEPT # this would be nice
+
+[ "$HAVE_S" -gt "0" ] && {
+
+recreate_filter $iptables mangle S_CLASSIFIER
+threats $iptables S_THREATS
+
+$iptables -t mangle -A PREROUTING -i s+ -j MARK --set-mark 0x80000000 \
+	  -m comment --comment 'Mark secured networks'
+
+$iptables -t mangle -A POSTROUTING -o s+ -m mark --mark 0x80000000/0x80000000 -g S_CLASSIFIER \
+	  -m comment --comment 'Good Traffic from/to our secured networks'
+
+$iptables -t mangle -A POSTROUTING -o s+ -g S_THREATS \
+	  -m comment --comment 'Potential network threats'
+
+}
+
+[ "$HAVE_D" -gt "0" ] && {
+
+threats $iptables D_THREATS
+recreate_filter $iptables mangle D_CLASSIFIER
+
+$iptables -t mangle -A PREROUTING -i d+ -j MARK --set-mark 0x40000000 \
+	  -m comment --comment 'Mark dmz networks'
+
+$iptables -t mangle -A POSTROUTING -o d+ -m mark --mark 0x40000000/0x40000000 -g D_CLASSIFIER \
+	  -m comment --comment 'Good Traffic from/to our dmz networks'
+
+$iptables -t mangle -A POSTROUTING -o d+ -g D_THREATS \
+	  -m comment --comment 'Potential network threats'
+
+}
+
+[ "$HAVE_G" -gt "0" ] && {
+
+threats $iptables G_THREATS
+recreate_filter $iptables mangle G_CLASSIFIER
+
+$iptables -t mangle -A PREROUTING -i g+ -j MARK --set-mark 0x20000000 \
+	  -m comment --comment 'Mark guest networks'
+
+$iptables -t mangle -A POSTROUTING -o g+ -m mark --mark 0x20000000/0x20000000 -g G_CLASSIFIER \
+	  -m comment --comment 'Good Traffic from/to our guest networks'
+
+$iptables -t mangle -A POSTROUTING -o g+ -g G_THREATS \
+	  -m comment --comment 'Potential network threats'
+
+}
+
+
+if [ "$HAVE_N" -gt 0 ]
+then
+
+	if [ "$iptables" = "iptables" ]
+	then
+
+# I'm totally unconvinced this is the right thing
+
+
+# Here's one way
+#iptables -t nat -A POSTROUTING -o $d -j MASQUERADE -m comment --comment 'Natted connections'
+#iptables -A FORWARD -i $d -m state --state RELATED,ESTABLISHED -j ACCEPT
+#iptables -A FORWARD ! -i $d -o $d -j ACCEPT # 
+
+# Another way, which I think is problematic
+
+#iptables -A block -m state --state ESTABLISHED,RELATED -j ACCEPT
+#iptables -A block -m state --state NEW ! -i $d -j ACCEPT
+#iptables -A block -j LOG
+#iptables -A block -j DROP
+#iptables -A INPUT -j block
+
+# Another way, which I think lets udp and other protocols run wild
+# WE DO want to accept new connections to the firewall in certain 
+# cases, however. DNS, Web Server, Etc
+# FIXME: Make sure we can connect to useful services on FW
+# Need DNS to work
+
+  iptables -t nat -A POSTROUTING -o $d -j MASQUERADE -m comment --comment 'Natted connections'
+
+  if [ "$CONNTRACK" = "1" ]
+  then
+  recreate_filter iptables filter BLOCK
+  recreate_filter iptables filter STATEFUL
+
+  iptables -A BLOCK -m state --state ESTABLISHED,RELATED -j ACCEPT
+  iptables -A BLOCK -m state --state NEW ! -i $d -j ACCEPT
+
+  [ "$FWLOG" = 1 ] && iptables -A BLOCK -j LOG
+
+  case "$FWCHATTY" in
+     0) iptables -A BLOCK -j DROP ;;
+     1) iptables -A BLOCK -j REJECT --reject-with icmp-port-unreachable ;;
+     2) iptables -A BLOCK -j REJECT --reject-with icmp-port-unreachable ;;
+     *) iptables -A BLOCK -j DROP ; break ;;
+  esac
+
+  iptables -A STATEFUL -p tcp -g BLOCK
+  iptables -A STATEFUL -p udp -g BLOCK
+  iptables -A STATEFUL -p icmp -g BLOCK
+
+  iptables -A STATEFUL -i $d -j STATEFUL
+
+  fi
+
+  echo 1 > /proc/sys/net/ipv4/ip_forward
+  iptables -A INPUT -j ACCEPT
+
+  # The internet is a wild and wooly place, try to make sure we work better there
+  iptables -A FORWARD -o $d -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+  fi
+  fi
+done
+
+
+# Fixme, do the right thing for ip6tables for the gateway devs
+
+}
+
+# BRUTE FORCE
+OLDCHAINS="BLOCK S_THREATS S_CLASSIFIER D_THREATS D_CLASSIFIER G_THREATS G_CLASSIFIER"
+
+clean() {
+	ip6tables -t filter -F
+	ip6tables -t mangle -F
+	iptables -t filter -F
+	iptables -t mangle -F
+	iptables -t raw -F
+	iptables -t nat -F
+
+	ip6tables -t filter -X
+	ip6tables -t mangle -X
+	iptables -t filter -X
+	iptables -t mangle -X
+	iptables -t raw -X
+	iptables -t nat -X
+
+#for i in $OLDCHAINS
+#    do
+#    iptables -t mangle 
+}
+
+
+# multiport_test
+clean
+setup

@@ -1,0 +1,26 @@
+#!/bin/sh
+# Babel and possibly other protocols can mess between DHCP replies when 
+# moving between networks
+# This keeps this from happening
+# hopefully. God help you if you aren't using a /24 netmask
+
+# more than once I've thought that putting babel in it's own table made sense
+# And dhcp.
+
+dhcp=400
+
+iptables -t mangle -A OUTPUT -p udp -m multiport --port 67:68 -j MARK --set-mark $dhcp
+
+ip -o addr | grep 'inet ' | awk '{print $2 " " $4}' | while read DEV ipaddr
+do
+net=`echo $ipaddr | cut -f2 -d/`
+[ "$net" = 24 ] && {
+ip=`echo $ipaddr | cut -f1-3 -d.`
+ip route del $ip/27 dev $DEV table $dhcp
+ip route add $ip/27 dev $DEV table $dhcp
+}
+done
+
+ip rule del prio $dhcp
+ip rule add fwmark $dhcp table $dhcp prio $dhcp
+

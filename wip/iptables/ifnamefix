@@ -1,0 +1,41 @@
+#!/bin/sh
+# Not clear when we can run this
+# So we try to be robust
+
+MACTAB=/etc/mactab
+TEMP=/tmp/nameif.$$
+TEMP=/tmp/nameif2.$$
+
+downup() {
+	local mac=$1
+	awk '{print $5,$7}' $TEMP | while read oif nif
+		do
+		MSG="$oif is busy. Trying rename to $nif: "
+		nif=`echo $nif | cut -f1 -d:`
+		ifconfig $oif down
+		nameif $nif $mac 2> $TEMP2
+		ifconfig $nif up
+		if [ -h /sys/class/net/$nif/address ]
+		then
+			logger "${MSG} Success"
+		else	
+			logger "${MSG} Failed, " `cat $TEMP2`
+		fi
+		done
+}
+
+[ ! -s $MACTAB ] && exit 0
+
+cat $MACTAB | while read ifname mac
+do
+if [ ! -h /sys/class/net/$ifname/address ]
+then
+	nameif $ifname $mac 2> $TEMP
+	[ $? -ne 0 ] && downup $mac
+fi
+done
+
+rm -f $TEMP $TEMP@
+
+exit 0
+
