@@ -3,5 +3,6 @@
 while :
 do
 ./itest4
-sleep 2
+wait
+sleep 4
 done

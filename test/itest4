@@ -1,5 +1,5 @@
 #!/bin/sh
-IP=172.30.49.4
+IP=172.30.49.27
 t=60
 netperf -l $t -H $IP -t TCP_RR &
 for i in `seq 1 10`

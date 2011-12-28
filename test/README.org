@@ -13,3 +13,13 @@ ping
 fping
 shaperprobe
 
+* Design 
+** implementation language throughout shall be lua
+** data transport: json
+** Database analysis: postgres
+** web server support - lua again
+** graphing/charting tools: unknown
+
+* Ideas
+** Netperf is fine, but perhaps we can measure RTT another way
+
