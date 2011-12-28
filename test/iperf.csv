@@ -1,0 +1,3 @@
+timestamp,sourceip,srcport,dstip,dstport,unknown,timerange,something,something
+20111228174427,172.30.50.2,36249,172.30.49.27,5001,3,0.0-10.1,23461888,18612244
+
