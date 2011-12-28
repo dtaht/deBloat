@@ -1,0 +1,18 @@
+* Packet Aggregation is buried deep in the driver
+** Idea #1 - expose a large number of hardware queues
+mq exposes 4 hardware queues. Instead, expose 128 'hardware' queues
+and map stuff into that.
+I've seen one hardware driver go by that has 4 threads on it
+so you would round robin across the queue types with separate 
+threads.
+
+** Flaw - the round robin approach is OK for all but the VO queue,
+which can't aggregate.
+** Flaw - you end up with a LOT of hardware queues 
+
+* BPFIFO - you really want a fifo limited in both packets and bytes
+up to 64 packets or 64k bytes.
+
+* mqprio version
+** Filter across the hardware queues
+** Fair queue across those queues
