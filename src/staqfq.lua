@@ -120,6 +120,7 @@ end
 if is_openwrt() then
    INSMOD="/sbin/insmod"
    ETHTOOL="/usr/sbin/ethtool"
+   TC="/usr/sbin/tc"
 else
    INSMOD="/sbin/modprobe"
    ETHTOOL="/sbin/ethtool"
