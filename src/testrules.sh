@@ -2,6 +2,7 @@
 
 WIRELESS=wlan0
 
+IFACE=$WIRELESS ./staqfq
 ./classify.lua > /tmp/runit.sh
 sh -x /tmp/runit.sh 2> /dev/null
 
