@@ -3,13 +3,14 @@
 require "diffserv"
 
 ds = diffserv
+local sf = string.format
 
 function iptables4(...)
-   print(string.format("iptables %s",...))
+   print(sf("iptables %s",...))
 end
 
 function iptables6(...)
-   print(string.format("ip6tables %s",...))
+   print(sf("ip6tables %s",...))
 end
 
 function iptables(...)
@@ -37,9 +38,9 @@ stats_type = { none, per_group, per_interface }
 function recreate_filter(t)
    assert(t.chain, "ERROR: chain parameter is missing!")
    assert(t.table, "ERROR: table parameter is missing!")
-   iptables(string.format("-t %s -F %s", t.table, t.chain))
-   iptables(string.format("-t %s -X %s", t.table,t.chain))
-   iptables(string.format("-t %s -N %s", t.table,t.chain))
+   iptables(sf("-t %s -F %s", t.table, t.chain))
+   iptables(sf("-t %s -X %s", t.table,t.chain))
+   iptables(sf("-t %s -N %s", t.table,t.chain))
 end
 
 -- What we want to eventually get to is where we can use tools
@@ -56,9 +57,9 @@ end
 -- processing, for now...
 
 function site_ingress(iface) 
-   local p = string.format("-i %s -A INGRESS -m dscp --dscp %%d -j DSCP --set-dscp %%d",iface)
+   local p = sf("-i %s -A INGRESS -m dscp --dscp %%d -j DSCP --set-dscp %%d",iface)
    local function f(m,s)
-      iptables(string.format(p,m,s))
+      iptables(sf(p,m,s))
    end
    f(ds.CS7,ds.BE)
    f(ds.LB,ds.BE)
@@ -69,7 +70,7 @@ function p80_rathole()
    recreate_filter{table=mangle,chain=P80RATHOLE}
    local p = "-t mangle -A P80RATHOLE -m dscp --dscp %d -m recent --name p80_%d --set"
    local function f(m,s)
-      iptables(string.format(p,m,s))
+      iptables(sf(p,m,s))
    end
    for i=0,63 do f(i,i) end
 end
@@ -77,7 +78,7 @@ end
 function dscp_WEB()
    local p = "-t mangle -A WEB -m dscp %s --dscp %d -j DSCP --set-dscp %d -m comment --comment '%s'"
    local function f(n,m,m2,c)
-      iptables(string.format(p,n,m,m2,c))
+      iptables(sf(p,n,m,m2,c))
    end
 
    recreate_filter{table="mangle",chain="SWEB"}
@@ -101,16 +102,16 @@ end
 -- maybe this is an ip level match now
 
 local function dscp_target(proto,dscp)
-   return(string.format("DSCP_%s_%s",proto,dscp))
+   return(sf("DSCP_%s_%s",proto,dscp))
 end
 
 local function dscp_classify_create()
    for i=0,63 do
       for n,proto in ipairs(ds.PROTOS) do
-	 iptables(string.format("-t mangle -X %s",dscp_target(proto,i)))
-	 iptables(string.format("-t mangle -N %s",dscp_target(proto,i)))
-	 iptables(string.format("-t mangle -A %s -p %s -m %s -j DSCP --set-dscp %d",dscp_target(proto,i),proto,proto,i))
-	 iptables(string.format("-t mangle -A %s -j RETURN",dscp_target(proto,i)))
+	 iptables(sf("-t mangle -X %s",dscp_target(proto,i)))
+	 iptables(sf("-t mangle -N %s",dscp_target(proto,i)))
+	 iptables(sf("-t mangle -A %s -p %s -m %s -j DSCP --set-dscp %d",dscp_target(proto,i),proto,proto,i))
+	 iptables(sf("-t mangle -A %s -j RETURN",dscp_target(proto,i)))
       end
    end
 end
@@ -130,7 +131,7 @@ function classify()
       end
 
       local function se(a,c) 
-	 iptables(string.format("-t mangle -A SYN_EXPEDITE -p tcp -m tcp %s -j DSCP --set-dscp-class AF11 -m comment --comment '%s'",a,c))
+	 iptables(sf("-t mangle -A SYN_EXPEDITE -p tcp -m tcp %s -j DSCP --set-dscp-class AF11 -m comment --comment '%s'",a,c))
       end
 
 -- I'm not certain this is a good idea, but the initial syn and syn/ack is a mouse.
@@ -144,7 +145,7 @@ function classify()
 -- FIXME: Also mark against IP not TCP
 
       local function ecn_stats(...) 
-	 iptables(string.format("-t mangle -A STATS_ECN -p tcp -m tcp --tcp-flags ALL SYN,ACK -m ecn %s -m recent --name %s --set -m comment --comment '%s'",...))
+	 iptables(sf("-t mangle -A STATS_ECN -p tcp -m tcp --tcp-flags ALL SYN,ACK -m ecn %s -m recent --name %s --set -m comment --comment '%s'",...))
       end
       ecn_stats("--ecn-tcp-ece","ecn_enabled","ECN Enabled")
       ecn_stats("! --ecn-tcp-ece","ecn_disabled","ECN disabled")
@@ -154,7 +155,7 @@ function classify()
 --       [!] --ecn-ip-ect 3
 
       local function bimodal(...) 
-	 iptables(string.format(" -t mangle -A BIMODAL -p tcp -m tcp -m multiport --ports %s -m dscp %s --dscp %s -m comment --comment '%s'",...))
+	 iptables(sf(" -t mangle -A BIMODAL -p tcp -m tcp -m multiport --ports %s -m dscp %s --dscp %s -m comment --comment '%s'",...))
       end
 
 -- FIXME: Multiple other flows are also bimodal
@@ -163,7 +164,7 @@ function classify()
       bimodal(ds.ports.INTERACTIVE,"! ",ds.BOFH .. " -j DSCP --set-dscp-class CS1 ","SSH Bulk")
 
       local function ants(...) 
-	 iptables(string.format(" -A Ants -p udp -m multiport --ports %s -j DSCP --set-dscp %d -m comment --comment '%s'",...))
+	 iptables(sf(" -A Ants -p udp -m multiport --ports %s -j DSCP --set-dscp %d -m comment --comment '%s'",...))
       end
 
       ants("53,67,68",ds.ANT,'DNS, DHCP, are very important')
@@ -173,7 +174,7 @@ function classify()
       ants(ds.ports.MONITOR, ds.CS2, 'SNMP')
 
       local function mcast6(...) 
-	 iptables6(string.format("-t mangle -A Ants %s -j DSCP --set-dscp %d -m comment --comment '%s'",...))
+	 iptables6(sf("-t mangle -A Ants %s -j DSCP --set-dscp %d -m comment --comment '%s'",...))
       end
 
       mcast6("-s fe80::/10 -d fe80::/10",ds.ANT,'Link Local sorely needed')
@@ -208,15 +209,15 @@ function classify()
 -- have CPU left over AND can see bufferbloat, do the test match first
 -- gotos are good
 
-      local function sf(...)
-	 iptables(string.format("-t mangle -A D_CLASSIFIER -p tcp -m tcp -m multiport --ports %s -g %s -m comment --comment '%s'",...))
+      local function tf(...)
+	 iptables(sf("-t mangle -A D_CLASSIFIER -p tcp -m tcp -m multiport --ports %s -g %s -m comment --comment '%s'",...))
       end
-      sf(ds.ports.TEST,'TESTS','Tests')
-      sf(ds.ports.BROWSING,'BROWSING','Browsing')
-      sf(ds.ports.PROXY,'SWEB','Proxies/433')
-      sf(ds.ports.INTERACTIVE,'BIMODAL','SSH')
+      tf(ds.ports.TEST,'TESTS','Tests')
+      tf(ds.ports.BROWSING,'BROWSING','Browsing')
+      tf(ds.ports.PROXY,'SWEB','Proxies/433')
+      tf(ds.ports.INTERACTIVE,'BIMODAL','SSH')
       local function lf(ports,dscp,comment)
-	 iptables(string.format("-t mangle -A D_CLASSIFIER -p tcp -m tcp -m multiport --ports %s -g %s -m comment --comment '%s'",ports,dscp_target("tcp",dscp),comment))
+	 iptables(sf("-t mangle -A D_CLASSIFIER -p tcp -m tcp -m multiport --ports %s -g %s -m comment --comment '%s'",ports,dscp_target("tcp",dscp),comment))
       end
       lf(ds.ports.XWIN,ds.CS4,'Xwindows')
       lf(ds.ports.GAMES,ds.CS4,'Gaming')
@@ -246,7 +247,7 @@ end
 -- FIXME Don't think this will work for ipv6
 
 local function mcast_classify(chain,class) 
-   iptables(string.format("-t mangle -A %s -m pkttype ! --pkt-type unicast -j CLASSIFY --set-class %s",chain,class))
+   iptables(sf("-t mangle -A %s -m pkttype ! --pkt-type unicast -j CLASSIFY --set-class %s",chain,class))
 end
 
 -- This will classify using the builtin wireless classifier for md
@@ -254,7 +255,7 @@ end
 local function mac80211e() 
    local t = "-t mangle -A W80211e -m dscp --dscp %d -j CLASSIFY --set-class 0:%d -m comment --comment '%s'"
    local function f(...)
-      iptables(string.format(t,...))
+      iptables(sf(t,...))
    end
    
    recreate_filter({table="mangle",chain="W80211e"})
@@ -279,7 +280,7 @@ end
 local function sch_md() 
    local t = "-t mangle -A SCH_MD -m dscp --dscp %d -j CLASSIFY --set-class 1:%d -m comment --comment '%s'"
    local function f(...)
-      iptables(string.format(t,...))
+      iptables(sf(t,...))
    end
    
    recreate_filter({table="mangle",chain="SCH_MD"})
@@ -302,7 +303,7 @@ end
 local function mac8021q() 
    local t = "-t mangle -A W8021q -m dscp --dscp %d -j CLASSIFY --set-class 1:%d -m comment --comment '%s'"
    local function f(...)
-      iptables(string.format(t,...))
+      iptables(sf(t,...))
    end
    
    recreate_filter({table="mangle",chain="W8021q"})
@@ -324,7 +325,7 @@ end
 local function dscp_stats()
    local t = "-t filter -A DSCP_STATS -m dscp --dscp %d -m comment --comment '%s' -j RETURN"
    local function f(...)
-      iptables(string.format(t,...))
+      iptables(sf(t,...))
    end
    recreate_filter{table="filter",chain="DSCP_STATS"}
    for i,v in ipairs(ds.DSFREQ) do
@@ -335,7 +336,7 @@ end
 
 local function icmpv6_stats()
    local function f(...)
-      iptables6(string.format("-A ICMP6_STATS -p icmpv6 --icmpv6-type %s -m comment --comment '%s' -j RETURN",...))
+      iptables6(sf("-A ICMP6_STATS -p icmpv6 --icmpv6-type %s -m comment --comment '%s' -j RETURN",...))
    end
    recreate_filter{table="filter",chain="ICMP6_STATS"}
    for i,v in pairs(ds.ICMPV6) do f(v,i) end 
@@ -343,8 +344,8 @@ end
 
 local function clean()
    for i,v in ipairs({ "filter", "mangle", "raw", "nat" }) do
-      iptables(string.format("-t %s -F",v))
-      iptables(string.format("-t %s -X",v))
+      iptables(sf("-t %s -F",v))
+      iptables(sf("-t %s -X",v))
    end
 end
 
