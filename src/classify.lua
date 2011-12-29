@@ -9,7 +9,7 @@ function iptables4(...)
 end
 
 function iptables6(...)
---   print(string.format("ip6tables %s",...))
+   print(string.format("ip6tables %s",...))
 end
 
 function iptables(...)
@@ -20,6 +20,14 @@ end
 function multiport(...)
 end
 
+-- We have truly excessive levels of classification available
+-- So at some point we'll need to cut these down to size
+-- with something like this
+
+levels = { minimal, normal, moderate, maximum, debug }
+stats  = { none, icmp, ipv6, dscp, ingress, egress }
+stats_type = { none, per_group, per_interface }
+
 --recreate_filter
 --{
 --   tab="mangle",
@@ -29,8 +37,7 @@ end
 function recreate_filter(t)
    assert(t.chain, "ERROR: chain parameter is missing!")
    assert(t.table, "ERROR: table parameter is missing!")
-   iptables(string.format("-t %s -X %s", t.table, t.chain))
-   iptables(string.format("-t %s -Z %s", t.table,t.chain))
+   iptables(string.format("-t %s -F %s", t.table, t.chain))
    iptables(string.format("-t %s -X %s", t.table,t.chain))
    iptables(string.format("-t %s -N %s", t.table,t.chain))
 end
@@ -144,6 +151,7 @@ function classify()
 
 -- FIXME, we want to see the whole state table
 --      ecn_stats("--ecn-tcp-ece","ecn_asserted","ECN Asserted") -- ??
+--       [!] --ecn-ip-ect 3
 
       local function bimodal(...) 
 	 iptables(string.format(" -t mangle -A BIMODAL -p tcp -m tcp -m multiport --ports %s -m dscp %s --dscp %s -m comment --comment '%s'",...))
@@ -224,11 +232,27 @@ function classify()
       lf(ds.ports.P2P,ds.P2P, 'PTP') -- There is no codepoint for torrent.
 end
 
+-- FIXME: Cope with kids. Stop syn attempts at certain times on egress
+-- iptables on syns = match the time 
+-- --datestart YYYY[-MM[-DD[Thh[:mm[:ss]]]]]
+-- --datestop YYYY[-MM[-DD[Thh[:mm[:ss]]]]]
+-- --timestart hh:mm[:ss]
+-- --timestop hh:mm[:ss]
+
+
 -- Fixme, memoize
 -- { "dscp", "newclass", "comment" }
 
+-- FIXME Don't think this will work for ipv6
+
+local function mcast_classify(chain,class) 
+   iptables(string.format("-t mangle -A %s -m pkttype ! --pkt-type unicast -j CLASSIFY --set-class %s",chain,class))
+end
+
+-- This will classify using the builtin wireless classifier for md
+
 local function mac80211e() 
-   local t = "-t mangle -A W80211e -m dscp --dscp %d -j CLASSIFY --set-class 1:%d -m comment --comment '%s'"
+   local t = "-t mangle -A W80211e -m dscp --dscp %d -j CLASSIFY --set-class 0:%d -m comment --comment '%s'"
    local function f(...)
       iptables(string.format(t,...))
    end
@@ -247,8 +271,10 @@ local function mac80211e()
    f(ds.P2P, 101,'P2P (BK)')
    f(ds.CS2, 102,'Background (BK)')
    f(ds.AF33,102,'Background (AF33)')
--- FIXME re-mark multicast for VO
+   mcast_classify("W80211e","0:107")
 end
+
+-- My own version of md starts with 1 instead
 
 local function sch_md() 
    local t = "-t mangle -A SCH_MD -m dscp --dscp %d -j CLASSIFY --set-class 1:%d -m comment --comment '%s'"
@@ -270,7 +296,7 @@ local function sch_md()
    f(ds.P2P, 4,'P2P (BK)')
    f(ds.CS2, 4,'Background (BK)')
    f(ds.AF33,4,'Background (AF33)')
--- FIXME re-mark multicast for VO
+   mcast_classify("SCH_MD","1:1")
 end
 
 local function mac8021q() 

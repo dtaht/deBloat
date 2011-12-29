@@ -2,6 +2,8 @@
 
 module(...,package.seeall)
 
+require "cero"
+
 -- My thought here is to explore how hard it would be
 -- to rewrite the fw, classification, and filtering rules
 -- in openwrt into pure lua.
@@ -74,7 +76,9 @@ DSFREQ = { 'BE', 'CS1', 'CS6', 'BOFH', 'ANT', 'EF', 'AF21', 'AF22', 'AF23',
 	  'CS2', 'AF11', 'AF12', 'AF13', 'AF31','AF32','AF33','LB' 
        }
 
-PROTOS = { 'tcp', 'udp', 'sctp' }
+-- FIXME: Really, really want hipl
+
+PROTOS = { 'ip', 'tcp', 'udp', 'sctp', 'tcpudp' }
 
 -- FIXME - sort into udp, tcp, udptcp catagories
 
@@ -85,8 +89,6 @@ PROTOS = { 'tcp', 'udp', 'sctp' }
 -- udp.ports
 -- tcp.ports
 --]
-
-
 
 ports = {
 -- Interactive classs: SSH Terminal, DNS and gaming (Quake)
@@ -163,13 +165,35 @@ ICMPV6 = {
 }
 
 -- We could use some shortcuts for common ipv6 addrs
+-- FIXME: not sure all these are correct. 
+-- I'd like to be able to use anycast right
 
--- i6:laddr = "fe80::/10"
--- i6:mcast = "ff00::/12" -- fixme
-
+i6 = {
+   ["link-local"] = "fe80::/10",
+   ["mcast"] = "ff00::/8",
+   ["interface-local"] = "ff01::/12",
+   ["link-local-multicast"] = "ff02::/12",
+   ["admin-local"] = "ff04::/12",
+   ["site-local"] = "ff05::/12",
+   ["organization-local"] = "ff08::/12",
+   ["unspecified"] = "::/128",
+   ["default-route"] = "::/0",
+   ["loopback"] = "::1/128",
+   ["default-route"] = "::/0",
+   ["unique-local"] = "fc00::/7",
+   ["ipv4-mapped"] = "::ffff:0:0/96",
+   ["ipv4-translated"] = "::ffff:0:0:0/96",
+   ["well-known"] = "64:ff9b::/96",
+   ["6to4"] = "2002::/16",
+   ["teredo"] = "2001::/32",
+   ["BMWG"] = "2001:2::/48",
+   ["ORCHID"] = "2001:10::/28",
+   ["documentation"] = "2001:db8::/32"
+}
+-- 
 -- Syntax is a:b,c,d,e,f:g
 -- a:b counts as two entries
---[
+
 function proto_split(s,max)
    s = { }
    c = 1
@@ -189,4 +213,3 @@ function proto_split(s,max)
    end
    return(s)
 end
---]
