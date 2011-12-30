@@ -1,12 +1,5 @@
-#!/usr/bin/lua
+module (..., package.seeall)
 
--- timestamp,sourceip,srcport,dstip,dstport,unknown,timerange,something,something
--- 20111228174427,172.30.50.2,36249,172.30.49.27,5001,3,0.0-10.1,23461888,18612244
--- sqlval = strjoin(",",table:join(t)
-
--- module(...,
-
--- load driver
 require "luasql.postgres"
 require "cero"
 
@@ -14,8 +7,6 @@ local sf = string.format
 local to_value = cero.to_sqlvaluestr
 local fromCSV = cero.fromCSV
 local strjoin = cero.strjoin
-
-sf("wtfs %d",1)
 
 ip="172.30.48.1"
 tests="iperf -yc -t %d -w256k -c %s"
@@ -29,9 +20,20 @@ bytespersec=0
 env = { }
 con = { }
 
+function init()
+   env = assert (luasql.postgres())
+   con = assert (env:connect("d"))
+end
+
+function fieldnames(t)
+   s = { }; c = 1
+   for i,v in pairs(t) do s[c] = i; c = c + 1; end
+   return s
+end
+
 -- org-mode output!
 
-function dbsummary_org()
+function summary_org()
    cur = assert (con:execute("SELECT ts, sum(bytes) as bytes, sum(bytes_sec) as bytes_sec from iperf_raw group by ts"))
    row = cur:fetch ({}, "a")
    print(sf("|%s|",strjoin("|",fieldnames(row))))
@@ -41,7 +43,7 @@ function dbsummary_org()
    end
 end
 
-function dbsummary()
+function summary()
    cur = assert (con:execute("SELECT ts, sum(bytes) as bytes, sum(bytes_sec) as bytes_sec from iperf_raw group by ts"))
    row = cur:fetch ({}, "a")
    print(strjoin("\t",fieldnames(row)))
@@ -51,7 +53,7 @@ function dbsummary()
    end
 end
 
-function dbprint()
+function print()
    cur = con:execute("SELECT * from iperf_raw")
    row = cur:fetch ({}, "a")
 --   print(cero:strjoin("\t",fieldnames(row)))
@@ -61,14 +63,19 @@ function dbprint()
    end
 end
 
-local function dbinsert(s)
+function close()
+   con:close()
+   env:close()
+end
+
+function insert(s)
    print(to_value(s))
    res = assert (con:execute(string.format("INSERT INTO iperf_raw %s",to_value(s))))
    con:commit()
    return(res)
 end
 
-local function iperfprint(s)
+function iperfprint(s)
    local t = fromCSV(s)
    dbinsert(t)
    for i,v in ipairs(t) do print(i,v) end
@@ -76,7 +83,7 @@ local function iperfprint(s)
    bytespersec= bytespersec + t[9]
 end
 
-local function runtest(args)
+function runtest(args)
    return io.popen(args,"r")
 end
 
@@ -84,8 +91,8 @@ end
 --   row = cur:fetch ({}, "a")
 -- end
 
-dbinit()
-dbsummary()
+init()
+summary()
 
 t = string.format(tests,5,ip)
 
