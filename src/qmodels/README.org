@@ -1,0 +1,26 @@
+* API needed
+** Pull settings from /etc/default/debloat /etc/config/debloat etc
+   And the environment
+** Qdisc construction set
+   Let you assemble any qdisc from a set of sub qdiscs
+** Need a clever iterator to handle the X:Y concept
+** BE REVERSABLE
+** BE ROBUST
+** 'Just work'
+   Or at least, in multiple scenarios
+** One day, interface with kernel directly
+* Models Needed
+** TODO STA_QFQ
+** TODO twotier
+   Most networks today are Gig in the Home, 4Mbit out
+   twotier might be something you'd run on your desktop
+   to schedule packet bursts better. 
+** TODO Bittorrent Buster
+** TODO wondershaper
+	Re-implement venerable wondershaper
+** TODO openwrt
+	Re-implement current openwrt shaper
+** TODO adsl-shaper
+** TODO Netem
+** TODO DRR
+** TODO HSFC
