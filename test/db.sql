@@ -1,8 +1,8 @@
 create table test_log (
-   id varchar(10),
-   ts   timestamp,
-   duration float,
-   description text
+       id varchar(10),
+       ts timestamp,
+       duration float,
+       description text
 );
 
 create table iperf (
@@ -15,6 +15,18 @@ create table iperf (
        duration interval,
        bytes bigint,
        bytes_sec bigint
+);
+
+create table fping (
+       id varchar(30)
+)
+
+create table fping_detailed (
+       id varchar(30),
+       c integer,
+       srcip inet,
+       dstip inet,
+       rtt float,
 );
 
 -- it's really painful to do the conversions in lua
@@ -31,3 +43,5 @@ create table iperf_raw (
        bytes bigint,
        bytes_sec bigint
 );
+
+create table fping_detailed_raw() as select * from fping_detailed;

@@ -14,15 +14,31 @@ tests="iperf -yc -t %d -w256k -c %s"
 numtests=10
 tmon = { }
 
-totalbytes=0
-bytespersec=0
-
 env = { }
 con = { }
 
 function init()
    env = assert (luasql.postgres())
    con = assert (env:connect("d"))
+   return con
+end
+
+-- return a single result from a query
+
+function sqlmono(s)
+   cur = con:execute(s)
+   row = cur:fetch ({}, "a")
+   return(row[1])
+end
+
+-- Return 
+-- FIXME - specify a negative argument to get the reverse
+
+function gen_max(table,field,id,interval)
+   c = sqlmono(sf("select count(*) as c from %s where id = '%s' and %s not null",table,id,field));
+   c = math:abs(c * interval)
+   return(sqlmono(sf("select max(b) from (select %s as b from %s where id = '%s' and %s is not null order by %s limit %d) as b",
+		      field, table, id, id, field, c)))
 end
 
 function fieldnames(t)
@@ -75,6 +91,8 @@ function insert(s)
    return(res)
 end
 
+-- 
+
 function iperfprint(s)
    local t = fromCSV(s)
    dbinsert(t)
@@ -87,14 +105,7 @@ function runtest(args)
    return io.popen(args,"r")
 end
 
---function dbsummary()
---   row = cur:fetch ({}, "a")
--- end
-
-init()
-summary()
-
-t = string.format(tests,5,ip)
+function runtest(numtests,func)
 
 for i=1,numtests do
    tmon[i] = runtest(t)
@@ -107,14 +118,7 @@ while # tmon > 0 do
    if s == nil then 
       table.remove(tmon,i) 
    else 
-      iperfprint(s)
+      func(s)
    end
    end
 end
-
-con:commit()
-print(string.format("Total KBytes: %d\nMBit/sec: %d",totalbytes/1024, bytespersec/1024))
-dbprint()
-print("Summary of tests")
-dbsummary()
-dbsummary_org()
