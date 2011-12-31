@@ -2,24 +2,73 @@
 
 I need to build a comprehensive test infrastructure others can run.
 
-I use the following in various ways. Usually I'll setup iperf to run
+I need to build a comprehensive test infrastructure *I* can run and get repeatable results with. It needs to be NOT web based (as usually when testing I'm OFF the internet), but it would be nice to integrate with something web based to some extent. 
+
+I also really want something that works with org-mode, so markdown output would be good. I realize that I'm not going to convince the world to use org-mode, but I have to say that being web dependent is a PITA - particularly when you are trying to fix the internet and breaking your connectivity while doing so.
+
+Having something that works well with the bufferbloat wiki would be good.
+
+Sigh. I keep thinking ikiwiki - which is markdown and git based - would be better than the bufferbloat wiki format, at least for this stuff.
+
+And then having TeX output is good for high quality results (which ties in well with org-mode, too)
+
+I use the following tools in various ways. Usually I'll setup iperf to run
 10 times in the background, then use things like ping or the TCP_RR test
 for netperf or ab (ab is VERY convincing, btw) - and so on.
 
-iperf
-netperf
-ab (apache benchmark)
-ping
-fping
-shaperprobe
+* Test tools currently being used
+** iperf
+   I run 10 copies of iperf at a time, usually, to load up the machine(s)
+*** Command line: iperf -w254 -c 
+** netperf
+   Primarily used for the TCP_RR test - which shows interactive response time
+** ab (apache benchmark)
+   ab is awesome - doing a nice range of tests across confidence intervals, that are VERY convincing as to the benefit of using FQ on a mixed web workload.
+   I don't use it heavily now - I need to setup a test server that emulates a typical web environment
+** ping
+  I'm trying to get away from ping and switch to fping, which is mildly more flexible and parsable.
+** fping
+** shaperprobe
+** pdsh
 
-* Design 
+* Stuff under test
+  It wasn't until (finally!) BQL came out that an x86 box could show similar results to what I was getting in cerowrt. 
+** Various AQMS
+** Latency under load
+** Core routing
+
+* Design of test environment
 ** implementation language throughout shall be lua
 ** data transport: json
 ** Database analysis: postgres
-** web server support - lua again
-** graphing/charting tools: unknown
+   I note that MOST of the tests involve very little data, overall, and that postgres is OVERKILL and overcomplex. Merely serializing a given test and tossing it into a special dir would be just fine. I keep thinking json + git would be good. Or ikiwiki. Something....
+   
+   That said, postgres does scale. I go back and forth on this. When I'm thinking ikiwiki I think of a json file per test entry, then google charts to plot it - and that's COOL. 
+
+If I could figure out a way to use the redmine wiki to do this, also cool. I mean, the redmine stuff is in postgres, so adding this to redmine might be very worthwhile. The real-problem is that I'm usually offline when running a test...
+
+** web server support: lua 
+** graphing/charting tools: Still to be determined
+
+*** gnuplot
+**** Pluses
+     The workhorse standard, with extremely high quality output
+**** Minuses
+     Every time I try to use it, I imagine my entire machine hooked up to a giant 80s era physical plotter and see the pens, moving up, and down, slowly. 
+*** Google charts
+    These are lovely. And web based. Can't use them on a day-to-day basis.
+*** lua-cairo
+    I like the idea of this. Convincing it to compile has been a problem.
+*** Evaluation
+I don't care for any of these alternatives. #1 to me is NOT web support but to be able to run a test, see and compare the results, change a variable - re-run the test and I'm ALWAYS offline when doing that. 
+
+Not only that I am really latency sensitive - why ship all this data out over the internet only to have it come back?
 
 * Ideas
 ** Netperf is fine, but perhaps we can measure RTT another way
-
+** Want a "run-at-time in future" facility
+that can reap or interrupt
+   a child that is taking 
+*** lua-ev? 
+*** Fork? 
+** 
