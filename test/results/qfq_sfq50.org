@@ -32,7 +32,7 @@ I note that the buffer size on QFQ is set to 24 pfifo per bin.
 
 SFQ has a hard limit of 127 packets. This may or may not account for the difference in plots
 ** Results (normal scale)
-#+PLOT: ind:1 type:2d title:"100 Mbit Latency under Load - SFQ vs QFQ vs PFIFO_FAST - vs 50 iperfs" set:"ylabel 'RTT MS'" set:"yrange [1:10]" set:"key on inside center box title 'PING RTT'" set:"timestamp bottom" file:"pfifo_sfq_vs_qfq_linear50.png"
+#+PLOT: ind:1 type:2d title:"100 Mbit Latency under Load - SFQ vs QFQ - vs 50 iperfs" set:"ylabel 'RTT MS'" set:"yrange [1:10]" set:"key on inside center box title 'PING RTT'" set:"timestamp bottom" file:"pfifo_sfq_vs_qfq_linear50.png"
 |  T | QFQ 1 | QFQ 2 | SFQ 2 | SFQ 2 |
 |----+-------+-------+-------+-------|
 |  1 |  0.41 |  0.31 |  0.36 |  0.25 |
@@ -97,7 +97,7 @@ SFQ has a hard limit of 127 packets. This may or may not account for the differe
 | 60 |  0.51 |  0.28 |  0.33 |  0.30 |
 
 ** Results (log scale)
-#+PLOT: ind:1 type:2d title:"100 Mbit Latency under Load - SFQ vs QFQ vs PFIFO_FAST - vs 50 iperfs \nLOG SCALE" set:"ylabel 'RTT MS'" set:"logscale y" set:"yrange [1:10]" set:"key on inside center box title 'PING RTT'" file:"sfq_vs_qfq_log50.png"
+#+PLOT: ind:1 type:2d title:"100 Mbit Latency under Load - SFQ vs QFQ - vs 50 iperfs \nLOG SCALE" set:"ylabel 'RTT MS'" set:"logscale y" set:"yrange [1:10]" set:"key on inside center box title 'PING RTT'" file:"sfq_vs_qfq_log50.png"
 |  T | QFQ 1 | QFQ 2 | SFQ 2 | SFQ 2 |
 |----+-------+-------+-------+-------|
 |  1 |  0.41 |  0.31 |  0.36 |  0.25 |
