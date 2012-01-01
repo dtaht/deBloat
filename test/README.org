@@ -72,3 +72,7 @@ that can reap or interrupt
 *** lua-ev? 
 *** Fork? 
 ** 
+* Notes
+  set datafile missing {"<string>"}
+  fping uses '-' to show a missing value. I was going to convert stuff to infinity, but that is saner.
+
