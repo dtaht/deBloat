@@ -1,9 +1,8 @@
 #!/bin/sh
-IP=172.30.42.1
-t=60
-netperf -l $t -H 172.30.42.1 -t TCP_RR &
+T=50
+IP=172.30.48.1
 for i in `seq 1 10`
 do
-iperf -w512k -t $t -c $IP &
+iperf -t $T -w256k -c $IP &
 done
-
+wait
