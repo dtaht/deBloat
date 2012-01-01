@@ -45,7 +45,7 @@ end
 ip="172.30.48.1"
 
 -- FPING sends the easy to parse summary data to STDERR!!!
--- so I just rewrote it around this
+-- so I just rewrote it around this wrapper
 
 FPING="/usr/bin/qfping"
 
