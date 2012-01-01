@@ -6,11 +6,11 @@ require "fping"
 g = {}
 c = 1
 
-PCOUNT=20
+PCOUNT=60
 ips = { }
 vals = { }
 
-f = fping.fping(PCOUNT,"172.30.50.1 172.30.48.1 127.0.0.1")
+f = fping.fping(PCOUNT,"172.30.50.1 172.30.48.1")
 s = f:read("*all")
 t = s:split("\n")
 
