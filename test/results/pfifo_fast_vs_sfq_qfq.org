@@ -164,17 +164,17 @@ SFQ has a hard limit of 127 packets. This may or may not account for the differe
 ** Latency under load Test, PFIFO_FAST vs QFQ vs SFQ
 ** Configurations
 *** LAPTOP
-| PROG       |        COUNT | DETAILS                  |
-| IPERF      |           10 | -t 50 -w256k             |
-| FPING      |            2 | -q -c 60                 |
-| TXQUEUELEN |         1000 |                          |
-| TSO        |          OFF |                          |
-| GSO        |          OFF |                          |
-| BQL        |         4500 |                          |
-| TX_RING    |           64 |                          |
-| SPEED      |          100 |                          |
-| QDISCS     | The variable | PFIFO_FAST, SFQ, STA_QFQ |
-| KERNEL     |        3.1.5 | bql-8                    |
+| PROG       |        COUNT | DETAILS                   |
+| IPERF      |           10 | -t 50 -w256k              |
+| FPING      |            2 | -q -c 60                  |
+| TXQUEUELEN |         1000 |                           |
+| TSO        |          OFF |                           |
+| GSO        |          OFF |                           |
+| BQL        |         4500 |                           |
+| TX_RING    |           64 |                           |
+| SPEED      |          100 |                           |
+| QDISCS     | The variable | PFIFO_FAST, SFQ, STA_QFQ  |
+| KERNEL     |              | 3.2.0-rc7-net-next-bql-14 |
 *** CEROWRT
 
 | PROG       |      COUNT | DETAILS                                       |
