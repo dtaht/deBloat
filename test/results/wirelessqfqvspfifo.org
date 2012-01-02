@@ -13,7 +13,7 @@
 
   FIXME: I need to come up with a better plotting mechanism for wireless.
 
-** Latency under load Test, QFQ vs SFQ (wireless)
+** Latency under load Test, QFQ vs PFIFO_FAST (wireless)
 ** Configurations
 *** LAPTOP
 | PROG       |        COUNT | DETAILS                  |
@@ -25,7 +25,7 @@
 | BQL        |         4500 |                          |
 | TX_RING    |           64 |                          |
 | SPEED      |          100 |                          |
-| QDISCS     | The variable | SFQ, STA_QFQ             |
+| QDISCS     | The variable | PFIFO_FAST,STA_QFQ       |
 | KERNEL     |        3.1.5 | bql-8                    |
 *** CEROWRT
 
@@ -110,8 +110,8 @@ SFQ has a hard limit of 127 packets. This may or may not account for the differe
 |   59 |      2.54 |      2.56 |      2.52 |      2.44 |
 |   60 |      2.54 |      2.53 |      2.50 |      2.48 |
 |------+-----------+-----------+-----------+-----------|
-| mean | 70.254576 | 68.550339 | 111.27475 | 109.78576 |
-#+TBLFM: @62$2=vmean(@2$2..@60$2)::@62$3=vmean(@2$3..@60$3)::@62$4=vmean(@2$4..@60$4)::@62$5=vmean(@2$5..@60$5)
+| mean | 80.892549 | 78.910588 | 127.35549 | 126.00431 |
+#+TBLFM: @62$2=vmean(@5$2..@55$2)::@62$3=vmean(@5$3..@55$3)::@62$4=vmean(@7$4..@57$4)::@62$5=vmean(@7$5..@57$5)
 
 
 ** Results (log scale)
