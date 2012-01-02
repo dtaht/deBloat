@@ -46,7 +46,7 @@ I note that the buffer size on QFQ is set to 24 pfifo per bin.
 
 SFQ has a hard limit of 127 packets. This may or may not account for the difference in plots
 ** Results (normal scale)
-#+PLOT: ind:1 type:2d title:"Wireless-n Latency under Load - PFIFO vs QFQ - vs 10 iperfs" set:"ylabel 'RTT MS'" set:"yrange [1:200]" set:"key on inside center box title 'PING RTT'" set:"timestamp bottom" 
+#+PLOT: ind:1 deps:(2 4) type:2d title:"IWL vs Cero Wireless-n L under L - QFQ - vs PFIFO vs 10 iperfs" set:"ylabel 'RTT MS'" set:"yrange [1:200]" set:"key on inside center box title 'PING RTT'" set:"timestamp bottom" with:"points" file:"wireless.qfqvspfifofast10iperfs.png"
 |    T |     QFQ 1 |     QFQ 2 |   PFIFO 1 |   PFIFO 2 |
 |------+-----------+-----------+-----------+-----------|
 |    1 |      1.13 |      2.47 |      1.14 |      2.46 |
@@ -110,6 +110,14 @@ SFQ has a hard limit of 127 packets. This may or may not account for the differe
 |   59 |      2.54 |      2.56 |      2.52 |      2.44 |
 |   60 |      2.54 |      2.53 |      2.50 |      2.48 |
 |------+-----------+-----------+-----------+-----------|
+
+
+
+
+Disable the summary for plotting
+
+
+
 | mean | 80.892549 | 78.910588 | 127.35549 | 126.00431 |
 #+TBLFM: @62$2=vmean(@5$2..@55$2)::@62$3=vmean(@5$3..@55$3)::@62$4=vmean(@7$4..@57$4)::@62$5=vmean(@7$5..@57$5)
 
