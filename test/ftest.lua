@@ -6,7 +6,7 @@ require "fping"
 g = {}
 c = 1
 
-PCOUNT=60
+PCOUNT=1000
 ips = { }
 vals = { }
 
