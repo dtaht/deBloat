@@ -1,8 +1,0 @@
-#!/bin/sh
-T=580
-IP=172.30.48.1
-for i in `seq 1 10`
-do
-iperf -t $T -w256k -c $IP &
-done
-wait

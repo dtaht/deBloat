@@ -1,9 +1,0 @@
-#!/bin/sh
-IP=172.30.49.4
-t=60
-netperf -l $t -H $IP -t TCP_RR &
-for i in `seq 1 10`
-do
-iperf -w512k -t $t -c $IP &
-done
-

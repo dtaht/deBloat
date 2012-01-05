@@ -10,7 +10,7 @@ PCOUNT=600
 ips = { }
 vals = { }
 
-f = fping.fping(PCOUNT,"172.30.50.1 172.30.48.1")
+f = fping.fping(PCOUNT,"172.30.50.1 172.30.48.1 172.30.49.1")
 s = f:read("*all")
 t = s:split("\n")
 
