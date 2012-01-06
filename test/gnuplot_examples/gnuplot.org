@@ -1,0 +1,97 @@
+* Logscale
+set logscale y
+plot "silver.dat" t "rate" w errorb, \
+               "" smooth sbezier t "bezier"
+
+
+* multipole data sets
+
+set xrange [1:8]
+#set xdtic
+set title "Convex     November 1-7 1989"
+set key below
+set label "(Weekend)" at 5,25 center
+plot 'using.dat' using 3:4 title "Logged in" with impulses,\
+     'using.dat' using 3:5 t "Load average" with points,\
+     'using.dat' using 3:6 t "%CPU used" with lines
+unset label
+
+# set terminal png transparent nocrop enhanced font arial 8 size 420,320 
+# set output 'using.2.png'
+set key bmargin center horizontal Right noreverse enhanced autotitles box linetype -1 linewidth 1.000
+set title "Convex     November 1-7 1989" 
+set xrange [ 1.00000 : 8.00000 ] noreverse nowriteback
+plot 'using.dat' using 3:4 title "Logged in" with impulses,     'using.dat' using 3:5 t "Load average" with points,     'using.dat' using 3:6 t "%CPU used" with lines
+
+* This gives me my dots
+
+#
+# $Id: random.dem,v 1.12.2.1 2006/10/23 05:43:30 sfeam Exp $
+#
+# random.dem
+#
+# Lattice test for random numbers;
+# If you can see any patterns in this plot, the random number generator
+# is not very good.
+#
+# Copyright (c) 1991, Jos van der Woude, jvdwoude@hut.nl
+
+# History:
+#	-  6. 6. 2006 ds: added univariate and multivariate normal example
+#	- 10. 5. 2006 ds: added univariate and multivariate normal example
+#	-  ?. ?  1991 jvdw: 1st version
+
+unset key
+set xrange [0: 1]
+set yrange [0: 1]
+set zrange [0: 1]
+set title "Lattice test for random numbers"
+set xlabel "rand(n) ->"
+set ylabel "rand(n + 1) ->"
+set zlabel "rand(n + 2) ->"
+set format x "%3.2f"
+set format y "%3.2f"
+set format z "%3.2f"
+set tics
+set sample 1000
+set style function dots
+set parametric
+plot rand(0), rand(0)
+** 
+set terminal png transparent nocrop enhanced font arial 8 size 1000,1000
+set output 'random.1.png'
+set dummy t,y
+set format x "%3.2f"
+set format y "%3.2f"
+set format z "%3.2f"
+unset key
+set parametric
+set samples 1000, 1000
+set style function dots
+set title "Lattice test for random numbers" 
+set xlabel "rand(n) ->" 
+set xrange [ 0.00000 : 1.00000 ] noreverse nowriteback
+set ylabel "rand(n + 1) ->" 
+set yrange [ 0.00000 : 1.00000 ] noreverse nowriteback
+set zlabel "rand(n + 2) ->" 
+set zrange [ 0.00000 : 1.00000 ] noreverse nowriteback
+plot rand(0), rand(0)
+* Colors
+
+set border -1 front linetype -1 linewidth 1.000
+set ticslevel 0
+set xtics border
+set ytics border
+set ztics border
+set xlabel "Red" tc rgb "red"
+set xrange [0:255]
+set ylabel "Green" tc rgb "green"
+set yrange [0:255]
+set zlabel "Blue" tc rgb "blue"
+set zrange [0:255]
+#
+rgb(r,g,b) = int(r)*65536 + int(g)*256 + int(b)
+#
+splot 'rgb_variable.dat' using 1:2:3:(rgb($1,$2,$3)) with points pt 7 ps 4 lc rgb variable, \
+      '' using 1:2:3:(sprintf("0x%x",rgb($1,$2,$3))) with labels left offset 1 notitle
+

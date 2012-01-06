@@ -47,8 +47,8 @@ MAX_HWQ_BYTES=4500
 -- 24, which is far, far better than 1000.
 -- might need to be larger on gigE+
 
-BIGDISC="pfifo_head_drop limit 12"
-MDISC="pfifo limit 16"
+BIGDISC="pfifo_head_drop limit 24"
+MDISC="pfifo limit 32"
 NORMDISC="pfifo limit 32"
 
 -- You shouldn't need to touch anything after this line
