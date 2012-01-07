@@ -1,0 +1,6 @@
+#!/bin/sh
+F=$1
+T=80
+
+C=$(($T*100))
+fping -b220 -q -C $C -i 10 -p 10 172.30.47.27 > ${F}.data 2> ${F}.summary

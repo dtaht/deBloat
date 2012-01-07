@@ -1,0 +1,13 @@
+* What's wrong with this picture?
+
+Why would this only run for 30 seconds?
+
+m@cruithne:~/git/iproute2$ iperf -t 60 -w256k -c 172.30.47.27
+------------------------------------------------------------
+Client connecting to 172.30.47.27, TCP port 5001
+TCP window size:  512 KByte (WARNING: requested  256 KByte)
+------------------------------------------------------------
+[  3] local 172.30.50.2 port 46964 connected with 172.30.47.27 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-31.9 sec  1.14 GBytes   308 Mbits/sec
+

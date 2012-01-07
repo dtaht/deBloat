@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# nl to number the lines, but it want to add formatting
+# nl wtf2 | awk '{print $1,"\t",$2}'
+cat $1 | sed -e 's/ /\n/g' | tail -n +3 | nl | awk '{print $1,"\t",$2}'
