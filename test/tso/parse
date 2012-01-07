@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# nl to number the lines, but it want to add formatting
+# nl wtf2 | awk '{print $1,"\t",$2}'
+
+cat $1 | cut -f4 -d= | nl | awk '{print $1,"\t",$2}'

@@ -1,0 +1,3 @@
+* Notes
+It's not clear to me what the 'loaded' file is actually measuring.
+
