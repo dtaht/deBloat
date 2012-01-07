@@ -6,26 +6,38 @@
 # FIXME - output pngs
 GNUPLOT = /usr/bin/gnuplot
 GNUPLOTI = /usr/bin/gnuplot
-# GNUPLOT = /usr/bin/gnuplot -e 'set terminal something other than this'
+PAUSE=pause.plt
+PNGOUT=png.plt
+PSOUT=ps.plt
+
 SRC:=$(wildcard *.ping)
 OBJ:=$(SRC:.ping=.data)
-PNG:=$(SRC:.data=.png)
+PNG:=$(SRC:.ping=.png)
+PS:=$(SRC:.ping=.ps)
+GRAPHS:=$(wildcard *.ps *.png)
+
 logscale=ericpinglog.plt
 normscale=ericping.plt
 
-all: $(OBJ) 
+all: $(OBJ) ping.png ping.ps ping_log.ps ping_log.png
 
 pingl: $(OBJ)
-	$(GNUPLOTI) < $(logscale)
+	cat $(logscale) $(PAUSE) | $(GNUPLOTI)
 
 ping: $(OBJ)
-	$(GNUPLOTI) < $(normscale)
+	cat $(normscale) $(PAUSE) | $(GNUPLOTI)
 
 ping_log.png: $(OBJ)
-	$(GNUPLOT) < $(logscale)
+	cat $(PNGOUT) $(logscale) | $(GNUPLOT) > ping_log.png
 
 ping.png: $(OBJ)
-	$(GNUPLOT) < $(normscale)
+	cat $(PNGOUT) $(normscale) | $(GNUPLOT) > ping.png
+
+ping_log.ps: $(OBJ)
+	cat $(PSOUT) $(logscale) | $(GNUPLOT) > ping_log.ps
+
+ping.ps: $(OBJ)
+	cat $(PSOUT) $(normscale) | $(GNUPLOT) > ping.ps
 
 clean: $(OBJ)
-	rm -f $(OBJ) 
+	rm -f $(OBJ) $(PS) $(PNG) $(GRAPHS)

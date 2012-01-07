@@ -1,3 +1,6 @@
 * Notes
 It's not clear to me what the 'loaded' file is actually measuring.
 
+The sample size of 20 is hardcoded into the gnuplot files.
+
+And I'd really prefer mountain plots I think.

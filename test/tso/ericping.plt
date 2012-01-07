@@ -9,4 +9,3 @@ plot 'idle.data' u 2:(1./20.) smooth cumulative title 'IDLE', \
 'loaded.data' u 2:(1./20.) smooth cumulative title 'NEWEST SFQ', \
 'no_tso.data' u 2:(1./20.) smooth cumulative title 'NEW SFQ NO TSO', \
 'tso.data' u 2:(1./20.) smooth cumulative title 'NEW SFQ WITH TSO'
-pause 500
