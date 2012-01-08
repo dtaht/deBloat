@@ -1,0 +1,11 @@
+# Bloatlab #2 router and host file (make your own, put it in /etc/genders)
+# Example use: 
+# 	put PDSH_RCMD_TYPE=ssh in your environment
+#	fping `nodeattr -s lab`
+# 	pdsh -g routers /sbin/reboot
+
+r[0-1]	routers,lab
+w[0-1]	wrouters
+l[0-1]	laptops,lab
+huchra	ssh server
+

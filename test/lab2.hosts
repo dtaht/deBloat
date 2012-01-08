@@ -1,0 +1,8 @@
+# This is a quick and dirty file to add to hosts
+# Used to have ipv6 in it too...
+
+172.30.47.1 r1
+172.30.50.1 r0
+172.30.50.2 l0
+172.30.47.27 l1
+
