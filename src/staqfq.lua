@@ -33,10 +33,19 @@ BINS=512
 
 -- Byte Queue Limits is supposed to have a 
 -- rate limiter that works. It doesn't, quite.
--- This seems to be the best compromise 
--- for 100Mbit
+-- At a hundred megabit, on my hardware I get
 
-MAX_HWQ_BYTES=4500
+-- (with sfq on)
+-- BQL = auto ~ 2.16 ms RTT for ping
+-- BQL = 4500 ~ 1.2 ms RTT for ping
+-- BQL = 3000 ~ .67 ms RTT for ping
+-- BQL = 1500 ~ .76 ms RTT for ping
+-- With a baseline of .33 ms unloaded
+-- And at this level we are no doubt
+-- interacting with other optimizations
+-- on the stack...
+
+MAX_HWQ_BYTES=3000
 
 -- I have tried pfifo_drop_head and RED here.
 -- both had bugs until recently. And linux RED,
