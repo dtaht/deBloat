@@ -1,0 +1,10 @@
+#!/bin/sh
+IP=172.30.50.1
+IP2=172.30.48.1
+for i in `seq 1 10000`
+do
+./ftest.lua > newcero/$i.qfq &
+sleep 5
+./itest
+wait
+done

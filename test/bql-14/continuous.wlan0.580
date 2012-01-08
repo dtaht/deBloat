@@ -1,0 +1,8 @@
+#!/bin/sh
+for i in `seq 1 10000`
+do
+./ftest.lua.wlan0.580 > wifi/$i.head_drop_qfq &
+sleep 5
+./itest.wlan0.580
+wait
+done

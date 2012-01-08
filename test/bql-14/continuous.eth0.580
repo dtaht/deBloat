@@ -1,0 +1,8 @@
+#!/bin/sh
+for i in `seq 1 10000`
+do
+./ftest.lua.eth0.580 > ethernet/$i.txqueue1000.pfifo_fast &
+sleep 5
+./itest.eth0.580
+wait
+done

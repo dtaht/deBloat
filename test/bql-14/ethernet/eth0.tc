@@ -1,0 +1,1548 @@
+qdisc qfq a: root refcnt 2 
+ Sent 677296406574 bytes 447446228 pkt (dropped 453192, overlimits 0 requeues 62071495) 
+ backlog 0b 0p requeues 62071495 
+qdisc pfifo 901b: parent a:201 limit 16p
+ Sent 500836 bytes 5814 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 901c: parent a:202 limit 32p
+ Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 901d: parent a: limit 24p
+ Sent 0 bytes 0 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 901e: parent a:1 limit 24p
+ Sent 1096275170 bytes 724153 pkt (dropped 1862, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 901f: parent a:2 limit 24p
+ Sent 1827724448 bytes 1207288 pkt (dropped 231, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9020: parent a:3 limit 24p
+ Sent 1616731750 bytes 1067919 pkt (dropped 1714, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9021: parent a:4 limit 24p
+ Sent 790649732 bytes 522266 pkt (dropped 1152, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9022: parent a:5 limit 24p
+ Sent 1779145438 bytes 1175199 pkt (dropped 3392, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9023: parent a:6 limit 24p
+ Sent 910064454 bytes 601129 pkt (dropped 46, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9024: parent a:7 limit 24p
+ Sent 1391055194 bytes 936573 pkt (dropped 4175, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9025: parent a:8 limit 24p
+ Sent 1958028224 bytes 1293356 pkt (dropped 1229, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9026: parent a:9 limit 24p
+ Sent 888171346 bytes 586671 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9027: parent a:a limit 24p
+ Sent 954001298 bytes 630153 pkt (dropped 53, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9028: parent a:b limit 24p
+ Sent 705388290 bytes 465947 pkt (dropped 1340, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9029: parent a:c limit 24p
+ Sent 1153601458 bytes 762003 pkt (dropped 1203, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 902a: parent a:d limit 24p
+ Sent 1286306626 bytes 849649 pkt (dropped 1208, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 902b: parent a:e limit 24p
+ Sent 1748987696 bytes 1155264 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 902c: parent a:f limit 24p
+ Sent 889669144 bytes 587662 pkt (dropped 48, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 902d: parent a:10 limit 24p
+ Sent 1451654376 bytes 958876 pkt (dropped 427, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 902e: parent a:11 limit 24p
+ Sent 1126700376 bytes 744234 pkt (dropped 2499, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 902f: parent a:12 limit 24p
+ Sent 882576580 bytes 582982 pkt (dropped 1, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9030: parent a:13 limit 24p
+ Sent 1108118670 bytes 731949 pkt (dropped 453, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9031: parent a:14 limit 24p
+ Sent 2339176404 bytes 1545098 pkt (dropped 2057, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9032: parent a:15 limit 24p
+ Sent 1179825674 bytes 779321 pkt (dropped 1532, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9033: parent a:16 limit 24p
+ Sent 1844497796 bytes 1218346 pkt (dropped 1, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9034: parent a:17 limit 24p
+ Sent 1418122022 bytes 936745 pkt (dropped 1939, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9035: parent a:18 limit 24p
+ Sent 1280720872 bytes 845958 pkt (dropped 1133, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9036: parent a:19 limit 24p
+ Sent 681359398 bytes 450071 pkt (dropped 1094, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9037: parent a:1a limit 24p
+ Sent 1508047294 bytes 996117 pkt (dropped 1141, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9038: parent a:1b limit 24p
+ Sent 1280983972 bytes 846156 pkt (dropped 2230, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9039: parent a:1c limit 24p
+ Sent 1179193272 bytes 778912 pkt (dropped 2120, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 903a: parent a:1d limit 24p
+ Sent 1315061828 bytes 868650 pkt (dropped 47, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 903b: parent a:1e limit 24p
+ Sent 1489549694 bytes 983903 pkt (dropped 1743, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 903c: parent a:1f limit 24p
+ Sent 717999950 bytes 474287 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 903d: parent a:20 limit 24p
+ Sent 1474660598 bytes 974079 pkt (dropped 1268, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 903e: parent a:21 limit 24p
+ Sent 1407186642 bytes 929509 pkt (dropped 907, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 903f: parent a:22 limit 24p
+ Sent 1344298542 bytes 887955 pkt (dropped 46, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9040: parent a:23 limit 24p
+ Sent 1637368142 bytes 1081549 pkt (dropped 502, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9041: parent a:24 limit 24p
+ Sent 1077839688 bytes 711968 pkt (dropped 1195, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9042: parent a:25 limit 24p
+ Sent 424636238 bytes 280531 pkt (dropped 1349, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9043: parent a:26 limit 24p
+ Sent 1485418720 bytes 981170 pkt (dropped 1394, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9044: parent a:27 limit 24p
+ Sent 1399781728 bytes 924620 pkt (dropped 2732, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9045: parent a:28 limit 24p
+ Sent 1403491236 bytes 927062 pkt (dropped 1102, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9046: parent a:29 limit 24p
+ Sent 1113157842 bytes 735287 pkt (dropped 2, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9047: parent a:2a limit 24p
+ Sent 1283078598 bytes 847529 pkt (dropped 1119, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9048: parent a:2b limit 24p
+ Sent 1307332278 bytes 863537 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9049: parent a:2c limit 24p
+ Sent 1751307748 bytes 1156804 pkt (dropped 44, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 904a: parent a:2d limit 24p
+ Sent 1676577838 bytes 1107431 pkt (dropped 2095, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 904b: parent a:2e limit 24p
+ Sent 312749370 bytes 206597 pkt (dropped 1254, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 904c: parent a:2f limit 24p
+ Sent 917197696 bytes 605840 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 904d: parent a:30 limit 24p
+ Sent 2066263730 bytes 1364845 pkt (dropped 799, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 904e: parent a:31 limit 24p
+ Sent 1780938524 bytes 1176376 pkt (dropped 466, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 904f: parent a:32 limit 24p
+ Sent 1114150192 bytes 735932 pkt (dropped 59, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9050: parent a:33 limit 24p
+ Sent 1613529492 bytes 1065794 pkt (dropped 176, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9051: parent a:34 limit 24p
+ Sent 1778157304 bytes 1174544 pkt (dropped 3502, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9052: parent a:35 limit 24p
+ Sent 1114869234 bytes 736413 pkt (dropped 56, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9053: parent a:36 limit 24p
+ Sent 1278896158 bytes 844751 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9054: parent a:37 limit 24p
+ Sent 1077400414 bytes 711657 pkt (dropped 458, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9055: parent a:38 limit 24p
+ Sent 891338458 bytes 588761 pkt (dropped 55, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9056: parent a:39 limit 24p
+ Sent 1302791738 bytes 863429 pkt (dropped 914, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9057: parent a:3a limit 24p
+ Sent 1704527006 bytes 1125893 pkt (dropped 471, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9058: parent a:3b limit 24p
+ Sent 1562548328 bytes 1032122 pkt (dropped 56, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9059: parent a:3c limit 24p
+ Sent 1191840584 bytes 787260 pkt (dropped 1114, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 905a: parent a:3d limit 24p
+ Sent 1048271404 bytes 692414 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 905b: parent a:3e limit 24p
+ Sent 1321140504 bytes 872656 pkt (dropped 6, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 905c: parent a:3f limit 24p
+ Sent 1645093470 bytes 1086635 pkt (dropped 2232, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 905d: parent a:40 limit 24p
+ Sent 1490156772 bytes 984296 pkt (dropped 96, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 905e: parent a:41 limit 24p
+ Sent 704952854 bytes 465647 pkt (dropped 3, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 905f: parent a:42 limit 24p
+ Sent 1201909196 bytes 793920 pkt (dropped 1576, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9060: parent a:43 limit 24p
+ Sent 1481803152 bytes 978780 pkt (dropped 1089, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9061: parent a:44 limit 24p
+ Sent 2379296138 bytes 1571601 pkt (dropped 1655, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9062: parent a:45 limit 24p
+ Sent 2081979446 bytes 1375207 pkt (dropped 1748, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9063: parent a:46 limit 24p
+ Sent 1227714790 bytes 810963 pkt (dropped 1088, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9064: parent a:47 limit 24p
+ Sent 1045579640 bytes 690672 pkt (dropped 2478, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9065: parent a:48 limit 24p
+ Sent 1340086990 bytes 885171 pkt (dropped 99, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9066: parent a:49 limit 24p
+ Sent 1352628908 bytes 893458 pkt (dropped 534, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9067: parent a:4a limit 24p
+ Sent 620065086 bytes 409569 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9068: parent a:4b limit 24p
+ Sent 1137228072 bytes 751180 pkt (dropped 1, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9069: parent a:4c limit 24p
+ Sent 1868703764 bytes 1234330 pkt (dropped 444, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 906a: parent a:4d limit 24p
+ Sent 619433366 bytes 409155 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 906b: parent a:4e limit 24p
+ Sent 1903175258 bytes 1257101 pkt (dropped 415, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 906c: parent a:4f limit 24p
+ Sent 646089232 bytes 426764 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 906d: parent a:50 limit 24p
+ Sent 1733734544 bytes 1145190 pkt (dropped 6, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 906e: parent a:51 limit 24p
+ Sent 1692709050 bytes 1118101 pkt (dropped 2309, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 906f: parent a:52 limit 24p
+ Sent 931709877 bytes 615451 pkt (dropped 1065, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9070: parent a:53 limit 24p
+ Sent 1446765398 bytes 955663 pkt (dropped 4, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9071: parent a:54 limit 24p
+ Sent 1107677968 bytes 731668 pkt (dropped 1244, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9072: parent a:55 limit 24p
+ Sent 1857799496 bytes 1227132 pkt (dropped 1552, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9073: parent a:56 limit 24p
+ Sent 928274902 bytes 613175 pkt (dropped 2739, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9074: parent a:57 limit 24p
+ Sent 1483973020 bytes 980232 pkt (dropped 1208, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9075: parent a:58 limit 24p
+ Sent 697424046 bytes 460681 pkt (dropped 47, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9076: parent a:59 limit 24p
+ Sent 1954813358 bytes 1291223 pkt (dropped 1146, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9077: parent a:5a limit 24p
+ Sent 1202929940 bytes 794594 pkt (dropped 1249, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9078: parent a:5b limit 24p
+ Sent 1309671844 bytes 865098 pkt (dropped 189, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9079: parent a:5c limit 24p
+ Sent 1339182222 bytes 884583 pkt (dropped 1114, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 907a: parent a:5d limit 24p
+ Sent 1301155852 bytes 859454 pkt (dropped 518, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 907b: parent a:5e limit 24p
+ Sent 1053876574 bytes 696125 pkt (dropped 2246, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 907c: parent a:5f limit 24p
+ Sent 1268518146 bytes 837893 pkt (dropped 466, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 907d: parent a:60 limit 24p
+ Sent 1715002600 bytes 1132850 pkt (dropped 497, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 907e: parent a:61 limit 24p
+ Sent 1015747492 bytes 670932 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 907f: parent a:62 limit 24p
+ Sent 1092754570 bytes 721823 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9080: parent a:63 limit 24p
+ Sent 1427183842 bytes 942713 pkt (dropped 1527, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9081: parent a:64 limit 24p
+ Sent 1347922346 bytes 890349 pkt (dropped 919, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9082: parent a:65 limit 24p
+ Sent 1780964320 bytes 1176384 pkt (dropped 536, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9083: parent a:66 limit 24p
+ Sent 1049853516 bytes 693464 pkt (dropped 1092, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9084: parent a:67 limit 24p
+ Sent 1106858540 bytes 731114 pkt (dropped 46, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9085: parent a:68 limit 24p
+ Sent 1206252832 bytes 796776 pkt (dropped 59, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9086: parent a:69 limit 24p
+ Sent 746413386 bytes 493041 pkt (dropped 284, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9087: parent a:6a limit 24p
+ Sent 1289086684 bytes 851482 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9088: parent a:6b limit 24p
+ Sent 1158326922 bytes 765113 pkt (dropped 984, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9089: parent a:6c limit 24p
+ Sent 1164576740 bytes 769250 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 908a: parent a:6d limit 24p
+ Sent 992575028 bytes 655642 pkt (dropped 1157, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 908b: parent a:6e limit 24p
+ Sent 337270502 bytes 222793 pkt (dropped 1316, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 908c: parent a:6f limit 24p
+ Sent 2360333458 bytes 1559073 pkt (dropped 1323, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 908d: parent a:70 limit 24p
+ Sent 1665824406 bytes 1100335 pkt (dropped 2188, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 908e: parent a:71 limit 24p
+ Sent 1274939560 bytes 842144 pkt (dropped 2249, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 908f: parent a:72 limit 24p
+ Sent 1844463014 bytes 1218335 pkt (dropped 2041, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9090: parent a:73 limit 24p
+ Sent 635089770 bytes 419497 pkt (dropped 44, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9091: parent a:74 limit 24p
+ Sent 685859440 bytes 453046 pkt (dropped 551, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9092: parent a:75 limit 24p
+ Sent 1374586784 bytes 907964 pkt (dropped 143, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9093: parent a:76 limit 24p
+ Sent 1133372856 bytes 748634 pkt (dropped 458, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9094: parent a:77 limit 24p
+ Sent 1049379864 bytes 693146 pkt (dropped 2, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9095: parent a:78 limit 24p
+ Sent 1359523468 bytes 898010 pkt (dropped 43, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9096: parent a:79 limit 24p
+ Sent 1546579272 bytes 1021568 pkt (dropped 1230, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9097: parent a:7a limit 24p
+ Sent 844032730 bytes 557509 pkt (dropped 504, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9098: parent a:7b limit 24p
+ Sent 1248340078 bytes 824589 pkt (dropped 1198, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9099: parent a:7c limit 24p
+ Sent 1050449502 bytes 693859 pkt (dropped 231, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 909a: parent a:7d limit 24p
+ Sent 1494880536 bytes 987424 pkt (dropped 2308, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 909b: parent a:7e limit 24p
+ Sent 1696757128 bytes 1120762 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 909c: parent a:7f limit 24p
+ Sent 1594652126 bytes 1053337 pkt (dropped 2349, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 909d: parent a:80 limit 24p
+ Sent 1302473600 bytes 860328 pkt (dropped 1111, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 909e: parent a:81 limit 24p
+ Sent 1319628984 bytes 871664 pkt (dropped 46, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 909f: parent a:82 limit 24p
+ Sent 881114012 bytes 582002 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90a0: parent a:83 limit 24p
+ Sent 685627092 bytes 452884 pkt (dropped 66, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90a1: parent a:84 limit 24p
+ Sent 914056000 bytes 603774 pkt (dropped 1075, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90a2: parent a:85 limit 24p
+ Sent 942918644 bytes 622832 pkt (dropped 180, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90a3: parent a:86 limit 24p
+ Sent 1265292280 bytes 835768 pkt (dropped 1128, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90a4: parent a:87 limit 24p
+ Sent 1407059686 bytes 929419 pkt (dropped 1160, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90a5: parent a:88 limit 24p
+ Sent 1558637162 bytes 1029533 pkt (dropped 485, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90a6: parent a:89 limit 24p
+ Sent 1060333586 bytes 700409 pkt (dropped 2163, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90a7: parent a:8a limit 24p
+ Sent 2298497770 bytes 1518253 pkt (dropped 3382, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90a8: parent a:8b limit 24p
+ Sent 934975898 bytes 617593 pkt (dropped 1, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90a9: parent a:8c limit 24p
+ Sent 707893884 bytes 467594 pkt (dropped 212, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90aa: parent a:8d limit 24p
+ Sent 1342550738 bytes 886807 pkt (dropped 649, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90ab: parent a:8e limit 24p
+ Sent 1939511750 bytes 1281135 pkt (dropped 3986, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90ac: parent a:8f limit 24p
+ Sent 1348102736 bytes 890480 pkt (dropped 2438, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90ad: parent a:90 limit 24p
+ Sent 1068496244 bytes 705780 pkt (dropped 1556, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90ae: parent a:91 limit 24p
+ Sent 1870297004 bytes 1235404 pkt (dropped 3513, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90af: parent a:92 limit 24p
+ Sent 930669224 bytes 614740 pkt (dropped 92, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90b0: parent a:93 limit 24p
+ Sent 1220066040 bytes 805884 pkt (dropped 445, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90b1: parent a:94 limit 24p
+ Sent 1539074666 bytes 1016605 pkt (dropped 482, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90b2: parent a:95 limit 24p
+ Sent 702830018 bytes 464249 pkt (dropped 216, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90b3: parent a:96 limit 24p
+ Sent 2083839674 bytes 1376453 pkt (dropped 1258, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90b4: parent a:97 limit 24p
+ Sent 2054918348 bytes 1357342 pkt (dropped 46, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90b5: parent a:98 limit 24p
+ Sent 1557353934 bytes 1028697 pkt (dropped 2717, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90b6: parent a:99 limit 24p
+ Sent 739989388 bytes 488794 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90b7: parent a:9a limit 24p
+ Sent 1817266464 bytes 1200372 pkt (dropped 1166, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90b8: parent a:9b limit 24p
+ Sent 809118542 bytes 534459 pkt (dropped 11, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90b9: parent a:9c limit 24p
+ Sent 1389584620 bytes 917870 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90ba: parent a:9d limit 24p
+ Sent 931952812 bytes 615590 pkt (dropped 55, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90bb: parent a:9e limit 24p
+ Sent 2128311590 bytes 1405827 pkt (dropped 3698, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90bc: parent a:9f limit 24p
+ Sent 1254210664 bytes 828442 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90bd: parent a:a0 limit 24p
+ Sent 1470865874 bytes 971565 pkt (dropped 2182, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90be: parent a:a1 limit 24p
+ Sent 1282841496 bytes 847356 pkt (dropped 110, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90bf: parent a:a2 limit 24p
+ Sent 1497450882 bytes 989119 pkt (dropped 1229, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90c0: parent a:a3 limit 24p
+ Sent 1668018200 bytes 1101780 pkt (dropped 56, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90c1: parent a:a4 limit 24p
+ Sent 1085753070 bytes 717199 pkt (dropped 2245, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90c2: parent a:a5 limit 24p
+ Sent 1557043862 bytes 1028487 pkt (dropped 1173, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90c3: parent a:a6 limit 24p
+ Sent 2308123726 bytes 1524583 pkt (dropped 1664, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90c4: parent a:a7 limit 24p
+ Sent 2318379188 bytes 1531378 pkt (dropped 1600, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90c5: parent a:a8 limit 24p
+ Sent 1967491188 bytes 1299596 pkt (dropped 829, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90c6: parent a:a9 limit 24p
+ Sent 1704074332 bytes 1125606 pkt (dropped 2334, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90c7: parent a:aa limit 24p
+ Sent 1602006506 bytes 1058197 pkt (dropped 2393, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90c8: parent a:ab limit 24p
+ Sent 879047388 bytes 580642 pkt (dropped 148, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90c9: parent a:ac limit 24p
+ Sent 1801268620 bytes 1189798 pkt (dropped 1, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90ca: parent a:ad limit 24p
+ Sent 1562994156 bytes 1032414 pkt (dropped 94, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90cb: parent a:ae limit 24p
+ Sent 254201306 bytes 167933 pkt (dropped 166, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90cc: parent a:af limit 24p
+ Sent 1173345574 bytes 775047 pkt (dropped 2298, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90cd: parent a:b0 limit 24p
+ Sent 1230541516 bytes 814294 pkt (dropped 476, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90ce: parent a:b1 limit 24p
+ Sent 2561271464 bytes 1691824 pkt (dropped 5525, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90cf: parent a:b2 limit 24p
+ Sent 1613722440 bytes 1065930 pkt (dropped 1616, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90d0: parent a:b3 limit 24p
+ Sent 1091619346 bytes 721059 pkt (dropped 1163, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90d1: parent a:b4 limit 24p
+ Sent 912505892 bytes 602746 pkt (dropped 1203, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90d2: parent a:b5 limit 24p
+ Sent 918672654 bytes 606815 pkt (dropped 66, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90d3: parent a:b6 limit 24p
+ Sent 1675755026 bytes 1106881 pkt (dropped 457, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90d4: parent a:b7 limit 24p
+ Sent 1569105096 bytes 1036860 pkt (dropped 1092, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90d5: parent a:b8 limit 24p
+ Sent 506579398 bytes 334621 pkt (dropped 1, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90d6: parent a:b9 limit 24p
+ Sent 1057250878 bytes 698359 pkt (dropped 2200, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90d7: parent a:ba limit 24p
+ Sent 581953682 bytes 384411 pkt (dropped 45, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90d8: parent a:bb limit 24p
+ Sent 1438365664 bytes 950102 pkt (dropped 1168, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90d9: parent a:bc limit 24p
+ Sent 1372460638 bytes 906569 pkt (dropped 2386, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90da: parent a:bd limit 24p
+ Sent 1507266020 bytes 995602 pkt (dropped 1448, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90db: parent a:be limit 24p
+ Sent 1092874272 bytes 721884 pkt (dropped 2325, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90dc: parent a:bf limit 24p
+ Sent 473561134 bytes 312803 pkt (dropped 63, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90dd: parent a:c0 limit 24p
+ Sent 793108344 bytes 523884 pkt (dropped 515, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90de: parent a:c1 limit 24p
+ Sent 664314140 bytes 438802 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90df: parent a:c2 limit 24p
+ Sent 1264117598 bytes 835007 pkt (dropped 166, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90e0: parent a:c3 limit 24p
+ Sent 2100643756 bytes 1387538 pkt (dropped 1191, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90e1: parent a:c4 limit 24p
+ Sent 1841136422 bytes 1216143 pkt (dropped 3341, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90e2: parent a:c5 limit 24p
+ Sent 1091964532 bytes 721278 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90e3: parent a:c6 limit 24p
+ Sent 213539756 bytes 141050 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90e4: parent a:c7 limit 24p
+ Sent 879910746 bytes 581215 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90e5: parent a:c8 limit 24p
+ Sent 2016162874 bytes 1331751 pkt (dropped 998, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90e6: parent a:c9 limit 24p
+ Sent 313923266 bytes 207367 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90e7: parent a:ca limit 24p
+ Sent 1337691562 bytes 883591 pkt (dropped 1170, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90e8: parent a:cb limit 24p
+ Sent 856015906 bytes 565429 pkt (dropped 1486, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90e9: parent a:cc limit 24p
+ Sent 754611740 bytes 498454 pkt (dropped 257, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90ea: parent a:cd limit 24p
+ Sent 1575174722 bytes 1040461 pkt (dropped 55, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90eb: parent a:ce limit 24p
+ Sent 1715949926 bytes 1133461 pkt (dropped 723, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90ec: parent a:cf limit 24p
+ Sent 1289721560 bytes 851916 pkt (dropped 3224, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90ed: parent a:d0 limit 24p
+ Sent 1296459102 bytes 856371 pkt (dropped 205, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90ee: parent a:d1 limit 24p
+ Sent 1607127786 bytes 1061557 pkt (dropped 1110, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90ef: parent a:d2 limit 24p
+ Sent 2276077262 bytes 1503431 pkt (dropped 476, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90f0: parent a:d3 limit 24p
+ Sent 899862370 bytes 594389 pkt (dropped 10, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90f1: parent a:d4 limit 24p
+ Sent 1722101158 bytes 1137521 pkt (dropped 4252, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90f2: parent a:d5 limit 24p
+ Sent 1364551656 bytes 901340 pkt (dropped 2584, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90f3: parent a:d6 limit 24p
+ Sent 1189106304 bytes 785452 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90f4: parent a:d7 limit 24p
+ Sent 1659476410 bytes 1096153 pkt (dropped 1247, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90f5: parent a:d8 limit 24p
+ Sent 1243317406 bytes 821247 pkt (dropped 1093, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90f6: parent a:d9 limit 24p
+ Sent 1391689408 bytes 919268 pkt (dropped 1184, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90f7: parent a:da limit 24p
+ Sent 1837253102 bytes 1213551 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90f8: parent a:db limit 24p
+ Sent 1157444552 bytes 764536 pkt (dropped 576, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90f9: parent a:dc limit 24p
+ Sent 1602405824 bytes 1058454 pkt (dropped 2431, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90fa: parent a:dd limit 24p
+ Sent 855213240 bytes 564896 pkt (dropped 1006, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90fb: parent a:de limit 24p
+ Sent 1284302074 bytes 848321 pkt (dropped 1179, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90fc: parent a:df limit 24p
+ Sent 1578933050 bytes 1042941 pkt (dropped 1137, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90fd: parent a:e0 limit 24p
+ Sent 1305179554 bytes 862131 pkt (dropped 1144, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90fe: parent a:e1 limit 24p
+ Sent 1680049890 bytes 1109721 pkt (dropped 1113, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 90ff: parent a:e2 limit 24p
+ Sent 1140353314 bytes 753249 pkt (dropped 1180, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9100: parent a:e3 limit 24p
+ Sent 658602244 bytes 435032 pkt (dropped 1068, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9101: parent a:e4 limit 24p
+ Sent 942257164 bytes 622398 pkt (dropped 56, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9102: parent a:e5 limit 24p
+ Sent 1814268508 bytes 1198402 pkt (dropped 3934, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9103: parent a:e6 limit 24p
+ Sent 800358570 bytes 528683 pkt (dropped 495, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9104: parent a:e7 limit 24p
+ Sent 236577664 bytes 156272 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9105: parent a:e8 limit 24p
+ Sent 1209741096 bytes 799092 pkt (dropped 3463, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9106: parent a:e9 limit 24p
+ Sent 1618433120 bytes 1069036 pkt (dropped 648, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9107: parent a:ea limit 24p
+ Sent 1318419688 bytes 870864 pkt (dropped 1087, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9108: parent a:eb limit 24p
+ Sent 1316297070 bytes 869459 pkt (dropped 1678, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9109: parent a:ec limit 24p
+ Sent 1854337042 bytes 1224865 pkt (dropped 693, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 910a: parent a:ed limit 24p
+ Sent 1647171526 bytes 1088003 pkt (dropped 408, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 910b: parent a:ee limit 24p
+ Sent 657729294 bytes 434455 pkt (dropped 1088, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 910c: parent a:ef limit 24p
+ Sent 1524794180 bytes 1007178 pkt (dropped 95, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 910d: parent a:f0 limit 24p
+ Sent 1862253458 bytes 1230089 pkt (dropped 1209, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 910e: parent a:f1 limit 24p
+ Sent 1320303418 bytes 872117 pkt (dropped 1366, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 910f: parent a:f2 limit 24p
+ Sent 1407900262 bytes 929985 pkt (dropped 3369, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9110: parent a:f3 limit 24p
+ Sent 1221505536 bytes 806866 pkt (dropped 2479, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9111: parent a:f4 limit 24p
+ Sent 1192103098 bytes 787441 pkt (dropped 2299, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9112: parent a:f5 limit 24p
+ Sent 1354156486 bytes 894471 pkt (dropped 669, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9113: parent a:f6 limit 24p
+ Sent 2191994036 bytes 1447898 pkt (dropped 2591, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9114: parent a:f7 limit 24p
+ Sent 1853017230 bytes 1223983 pkt (dropped 97, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9115: parent a:f8 limit 24p
+ Sent 967870740 bytes 639320 pkt (dropped 558, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9116: parent a:f9 limit 24p
+ Sent 1172080568 bytes 774224 pkt (dropped 1280, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9117: parent a:fa limit 24p
+ Sent 1702919122 bytes 1124825 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9118: parent a:fb limit 24p
+ Sent 2462912134 bytes 1626843 pkt (dropped 443, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9119: parent a:fc limit 24p
+ Sent 120387622 bytes 79531 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 911a: parent a:fd limit 24p
+ Sent 1068395320 bytes 705724 pkt (dropped 157, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 911b: parent a:fe limit 24p
+ Sent 732317030 bytes 483727 pkt (dropped 50, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 911c: parent a:ff limit 24p
+ Sent 2221221002 bytes 1467189 pkt (dropped 449, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 911d: parent a:100 limit 24p
+ Sent 1362453360 bytes 899960 pkt (dropped 2255, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 911e: parent a:101 limit 24p
+ Sent 1109508362 bytes 732869 pkt (dropped 47, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 911f: parent a:102 limit 24p
+ Sent 590804702 bytes 390259 pkt (dropped 22, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9120: parent a:103 limit 24p
+ Sent 682057192 bytes 450524 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9121: parent a:104 limit 24p
+ Sent 1516944968 bytes 1001994 pkt (dropped 1665, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9122: parent a:105 limit 24p
+ Sent 1699494866 bytes 1122593 pkt (dropped 1227, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9123: parent a:106 limit 24p
+ Sent 1285522796 bytes 849130 pkt (dropped 480, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9124: parent a:107 limit 24p
+ Sent 1299661182 bytes 858471 pkt (dropped 937, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9125: parent a:108 limit 24p
+ Sent 1171196612 bytes 773626 pkt (dropped 283, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9126: parent a:109 limit 24p
+ Sent 1723376344 bytes 1138360 pkt (dropped 4623, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9127: parent a:10a limit 24p
+ Sent 1458775864 bytes 963564 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9128: parent a:10b limit 24p
+ Sent 1723391448 bytes 1138378 pkt (dropped 517, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9129: parent a:10c limit 24p
+ Sent 2362182200 bytes 1560300 pkt (dropped 628, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 912a: parent a:10d limit 24p
+ Sent 1108678210 bytes 732319 pkt (dropped 476, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 912b: parent a:10e limit 24p
+ Sent 797078230 bytes 526507 pkt (dropped 1, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 912c: parent a:10f limit 24p
+ Sent 2048749530 bytes 1353273 pkt (dropped 1, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 912d: parent a:110 limit 24p
+ Sent 1387845136 bytes 916736 pkt (dropped 5040, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 912e: parent a:111 limit 24p
+ Sent 2372913024 bytes 1567400 pkt (dropped 872, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 912f: parent a:112 limit 24p
+ Sent 1919863732 bytes 1268132 pkt (dropped 2139, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9130: parent a:113 limit 24p
+ Sent 810485848 bytes 535368 pkt (dropped 48, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9131: parent a:114 limit 24p
+ Sent 2132596640 bytes 1408642 pkt (dropped 6, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9132: parent a:115 limit 24p
+ Sent 2425038186 bytes 1601819 pkt (dropped 1443, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9133: parent a:116 limit 24p
+ Sent 786459796 bytes 519494 pkt (dropped 185, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9134: parent a:117 limit 24p
+ Sent 1030205092 bytes 680506 pkt (dropped 495, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9135: parent a:118 limit 24p
+ Sent 1176319858 bytes 777013 pkt (dropped 2807, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9136: parent a:119 limit 24p
+ Sent 921794860 bytes 608900 pkt (dropped 2, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9137: parent a:11a limit 24p
+ Sent 1658470182 bytes 1095471 pkt (dropped 1117, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9138: parent a:11b limit 24p
+ Sent 2126338336 bytes 1404514 pkt (dropped 1549, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9139: parent a:11c limit 24p
+ Sent 1359855286 bytes 898231 pkt (dropped 53, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 913a: parent a:11d limit 24p
+ Sent 1461418244 bytes 965318 pkt (dropped 2228, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 913b: parent a:11e limit 24p
+ Sent 1576366668 bytes 1041260 pkt (dropped 144, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 913c: parent a:11f limit 24p
+ Sent 1376563804 bytes 909288 pkt (dropped 3842, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 913d: parent a:120 limit 24p
+ Sent 254748568 bytes 168292 pkt (dropped 2, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 913e: parent a:121 limit 24p
+ Sent 948024006 bytes 626211 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 913f: parent a:122 limit 24p
+ Sent 937072496 bytes 636894 pkt (dropped 1788, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9140: parent a:123 limit 24p
+ Sent 1459736562 bytes 964197 pkt (dropped 448, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9141: parent a:124 limit 24p
+ Sent 1183624148 bytes 781834 pkt (dropped 91, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9142: parent a:125 limit 24p
+ Sent 1750883288 bytes 1156508 pkt (dropped 1, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9143: parent a:126 limit 24p
+ Sent 957055962 bytes 632173 pkt (dropped 57, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9144: parent a:127 limit 24p
+ Sent 1216890434 bytes 803795 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9145: parent a:128 limit 24p
+ Sent 1314360572 bytes 868192 pkt (dropped 48, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9146: parent a:129 limit 24p
+ Sent 1311684320 bytes 866410 pkt (dropped 5, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9147: parent a:12a limit 24p
+ Sent 552483932 bytes 364942 pkt (dropped 453, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9148: parent a:12b limit 24p
+ Sent 2308376756 bytes 1524742 pkt (dropped 501, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9149: parent a:12c limit 24p
+ Sent 540330544 bytes 356912 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 914a: parent a:12d limit 24p
+ Sent 902544462 bytes 596163 pkt (dropped 58, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 914b: parent a:12e limit 24p
+ Sent 1533628886 bytes 1013015 pkt (dropped 381, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 914c: parent a:12f limit 24p
+ Sent 1564886530 bytes 1033657 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 914d: parent a:130 limit 24p
+ Sent 1155954476 bytes 763552 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 914e: parent a:131 limit 24p
+ Sent 703828368 bytes 464904 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 914f: parent a:132 limit 24p
+ Sent 1379952792 bytes 911508 pkt (dropped 97, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9150: parent a:133 limit 24p
+ Sent 1362243172 bytes 899816 pkt (dropped 1116, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9151: parent a:134 limit 24p
+ Sent 1335569934 bytes 882189 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9152: parent a:135 limit 24p
+ Sent 904844204 bytes 597686 pkt (dropped 1227, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9153: parent a:136 limit 24p
+ Sent 2044873658 bytes 1350723 pkt (dropped 1122, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9154: parent a:137 limit 24p
+ Sent 1005243460 bytes 663994 pkt (dropped 1191, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9155: parent a:138 limit 24p
+ Sent 1938101316 bytes 1280194 pkt (dropped 1138, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9156: parent a:139 limit 24p
+ Sent 1037524172 bytes 685334 pkt (dropped 97, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9157: parent a:13a limit 24p
+ Sent 2026794330 bytes 1338771 pkt (dropped 882, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9158: parent a:13b limit 24p
+ Sent 857443762 bytes 566369 pkt (dropped 5, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9159: parent a:13c limit 24p
+ Sent 1145871834 bytes 756889 pkt (dropped 187, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 915a: parent a:13d limit 24p
+ Sent 2040399552 bytes 1347768 pkt (dropped 1576, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 915b: parent a:13e limit 24p
+ Sent 1011462500 bytes 668098 pkt (dropped 433, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 915c: parent a:13f limit 24p
+ Sent 1704822970 bytes 1126115 pkt (dropped 267, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 915d: parent a:140 limit 24p
+ Sent 1138672584 bytes 752132 pkt (dropped 230, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 915e: parent a:141 limit 24p
+ Sent 621596808 bytes 410600 pkt (dropped 1157, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 915f: parent a:142 limit 24p
+ Sent 1338644648 bytes 884228 pkt (dropped 2259, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9160: parent a:143 limit 24p
+ Sent 973820916 bytes 643254 pkt (dropped 1155, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9161: parent a:144 limit 24p
+ Sent 1399957236 bytes 924728 pkt (dropped 48, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9162: parent a:145 limit 24p
+ Sent 907271516 bytes 599286 pkt (dropped 1626, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9163: parent a:146 limit 24p
+ Sent 2097027662 bytes 1385151 pkt (dropped 1557, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9164: parent a:147 limit 24p
+ Sent 1306888152 bytes 863248 pkt (dropped 1565, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9165: parent a:148 limit 24p
+ Sent 507707186 bytes 335361 pkt (dropped 61, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9166: parent a:149 limit 24p
+ Sent 900362608 bytes 594726 pkt (dropped 1672, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9167: parent a:14a limit 24p
+ Sent 1340718016 bytes 885590 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9168: parent a:14b limit 24p
+ Sent 648321842 bytes 428245 pkt (dropped 1206, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9169: parent a:14c limit 24p
+ Sent 1353483438 bytes 894019 pkt (dropped 103, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 916a: parent a:14d limit 24p
+ Sent 748903936 bytes 494680 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 916b: parent a:14e limit 24p
+ Sent 725067550 bytes 478939 pkt (dropped 487, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 916c: parent a:14f limit 24p
+ Sent 1716686486 bytes 1133927 pkt (dropped 1214, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 916d: parent a:150 limit 24p
+ Sent 1605261548 bytes 1060336 pkt (dropped 1330, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 916e: parent a:151 limit 24p
+ Sent 1291585576 bytes 853136 pkt (dropped 451, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 916f: parent a:152 limit 24p
+ Sent 853915160 bytes 564036 pkt (dropped 1, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9170: parent a:153 limit 24p
+ Sent 1712152912 bytes 1130936 pkt (dropped 1627, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9171: parent a:154 limit 24p
+ Sent 648964280 bytes 428664 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9172: parent a:155 limit 24p
+ Sent 2402149408 bytes 1586696 pkt (dropped 839, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9173: parent a:156 limit 24p
+ Sent 1617670722 bytes 1068533 pkt (dropped 44, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9174: parent a:157 limit 24p
+ Sent 1324233234 bytes 874705 pkt (dropped 1207, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9175: parent a:158 limit 24p
+ Sent 1203794176 bytes 795166 pkt (dropped 414, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9176: parent a:159 limit 24p
+ Sent 1960022748 bytes 1294656 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9177: parent a:15a limit 24p
+ Sent 1718312992 bytes 1135018 pkt (dropped 96, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9178: parent a:15b limit 24p
+ Sent 1980485874 bytes 1308173 pkt (dropped 197, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9179: parent a:15c limit 24p
+ Sent 2228017430 bytes 1471671 pkt (dropped 2130, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 917a: parent a:15d limit 24p
+ Sent 1252790530 bytes 827505 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 917b: parent a:15e limit 24p
+ Sent 1652615564 bytes 1091618 pkt (dropped 51, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 917c: parent a:15f limit 24p
+ Sent 916251124 bytes 605214 pkt (dropped 53, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 917d: parent a:160 limit 24p
+ Sent 1999859154 bytes 1320985 pkt (dropped 1799, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 917e: parent a:161 limit 24p
+ Sent 2028911820 bytes 1340170 pkt (dropped 1647, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 917f: parent a:162 limit 24p
+ Sent 2139108518 bytes 1412947 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9180: parent a:163 limit 24p
+ Sent 921601458 bytes 608771 pkt (dropped 1341, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9181: parent a:164 limit 24p
+ Sent 1516883916 bytes 1001950 pkt (dropped 1500, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9182: parent a:165 limit 24p
+ Sent 1077485760 bytes 711720 pkt (dropped 376, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9183: parent a:166 limit 24p
+ Sent 1101764144 bytes 727756 pkt (dropped 1635, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9184: parent a:167 limit 24p
+ Sent 1155838588 bytes 763474 pkt (dropped 55, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9185: parent a:168 limit 24p
+ Sent 1162520536 bytes 767888 pkt (dropped 58, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9186: parent a:169 limit 24p
+ Sent 764627544 bytes 505080 pkt (dropped 2262, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9187: parent a:16a limit 24p
+ Sent 693936406 bytes 458377 pkt (dropped 1, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9188: parent a:16b limit 24p
+ Sent 1642602214 bytes 1084987 pkt (dropped 1153, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9189: parent a:16c limit 24p
+ Sent 1401413588 bytes 925690 pkt (dropped 95, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 918a: parent a:16d limit 24p
+ Sent 485167682 bytes 320473 pkt (dropped 48, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 918b: parent a:16e limit 24p
+ Sent 1693829364 bytes 1118830 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 918c: parent a:16f limit 24p
+ Sent 1045058954 bytes 690305 pkt (dropped 9, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 918d: parent a:170 limit 24p
+ Sent 1542254192 bytes 1018708 pkt (dropped 664, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 918e: parent a:171 limit 24p
+ Sent 1460451748 bytes 964694 pkt (dropped 1111, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 918f: parent a:172 limit 24p
+ Sent 755717110 bytes 499183 pkt (dropped 87, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9190: parent a:173 limit 24p
+ Sent 1155168422 bytes 763031 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9191: parent a:174 limit 24p
+ Sent 1146352440 bytes 757204 pkt (dropped 3, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9192: parent a:175 limit 24p
+ Sent 1385352188 bytes 915076 pkt (dropped 549, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9193: parent a:176 limit 24p
+ Sent 881071026 bytes 581985 pkt (dropped 1385, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9194: parent a:177 limit 24p
+ Sent 561668962 bytes 371017 pkt (dropped 2368, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9195: parent a:178 limit 24p
+ Sent 1056831960 bytes 698088 pkt (dropped 558, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9196: parent a:179 limit 24p
+ Sent 1561934672 bytes 1031712 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9197: parent a:17a limit 24p
+ Sent 451687380 bytes 298364 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9198: parent a:17b limit 24p
+ Sent 847006998 bytes 559475 pkt (dropped 133, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9199: parent a:17c limit 24p
+ Sent 996181668 bytes 658018 pkt (dropped 566, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 919a: parent a:17d limit 24p
+ Sent 1560733542 bytes 1030915 pkt (dropped 480, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 919b: parent a:17e limit 24p
+ Sent 1467932124 bytes 969630 pkt (dropped 1, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 919c: parent a:17f limit 24p
+ Sent 1197444634 bytes 790977 pkt (dropped 991, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 919d: parent a:180 limit 24p
+ Sent 1855561176 bytes 1225692 pkt (dropped 301, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 919e: parent a:181 limit 24p
+ Sent 1074045244 bytes 709438 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 919f: parent a:182 limit 24p
+ Sent 901100432 bytes 595208 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91a0: parent a:183 limit 24p
+ Sent 1503312842 bytes 992991 pkt (dropped 1070, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91a1: parent a:184 limit 24p
+ Sent 767742766 bytes 507131 pkt (dropped 2, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91a2: parent a:185 limit 24p
+ Sent 1000474910 bytes 660855 pkt (dropped 1091, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91a3: parent a:186 limit 24p
+ Sent 1152033106 bytes 760961 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91a4: parent a:187 limit 24p
+ Sent 1272372230 bytes 840455 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91a5: parent a:188 limit 24p
+ Sent 1856746352 bytes 1226466 pkt (dropped 1266, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91a6: parent a:189 limit 24p
+ Sent 1362766630 bytes 900155 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91a7: parent a:18a limit 24p
+ Sent 783033522 bytes 517229 pkt (dropped 331, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91a8: parent a:18b limit 24p
+ Sent 1498515748 bytes 989826 pkt (dropped 2265, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91a9: parent a:18c limit 24p
+ Sent 1633946764 bytes 1079286 pkt (dropped 924, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91aa: parent a:18d limit 24p
+ Sent 2133808696 bytes 1426604 pkt (dropped 6104, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91ab: parent a:18e limit 24p
+ Sent 1534348908 bytes 1013500 pkt (dropped 2296, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91ac: parent a:18f limit 24p
+ Sent 1013726362 bytes 669593 pkt (dropped 439, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91ad: parent a:190 limit 24p
+ Sent 1902086100 bytes 1256386 pkt (dropped 955, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91ae: parent a:191 limit 24p
+ Sent 1779381158 bytes 1175367 pkt (dropped 1331, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91af: parent a:192 limit 24p
+ Sent 205712918 bytes 135879 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91b0: parent a:193 limit 24p
+ Sent 693047286 bytes 457787 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91b1: parent a:194 limit 24p
+ Sent 1069584628 bytes 706490 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91b2: parent a:195 limit 24p
+ Sent 2243575520 bytes 1481968 pkt (dropped 3492, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91b3: parent a:196 limit 24p
+ Sent 1814995740 bytes 1198870 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91b4: parent a:197 limit 24p
+ Sent 2010554228 bytes 1328052 pkt (dropped 1188, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91b5: parent a:198 limit 24p
+ Sent 811277588 bytes 535890 pkt (dropped 234, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91b6: parent a:199 limit 24p
+ Sent 941313634 bytes 622729 pkt (dropped 140, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91b7: parent a:19a limit 24p
+ Sent 792638168 bytes 523574 pkt (dropped 89, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91b8: parent a:19b limit 24p
+ Sent 851543772 bytes 562470 pkt (dropped 449, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91b9: parent a:19c limit 24p
+ Sent 1902545938 bytes 1256721 pkt (dropped 4298, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91ba: parent a:19d limit 24p
+ Sent 907732140 bytes 599600 pkt (dropped 1555, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91bb: parent a:19e limit 24p
+ Sent 1941850252 bytes 1282654 pkt (dropped 1257, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91bc: parent a:19f limit 24p
+ Sent 893086974 bytes 589919 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91bd: parent a:1a0 limit 24p
+ Sent 1458970006 bytes 963717 pkt (dropped 1195, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91be: parent a:1a1 limit 24p
+ Sent 1745843088 bytes 1153192 pkt (dropped 1466, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91bf: parent a:1a2 limit 24p
+ Sent 1020622418 bytes 674165 pkt (dropped 51, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91c0: parent a:1a3 limit 24p
+ Sent 1256934930 bytes 830261 pkt (dropped 21, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91c1: parent a:1a4 limit 24p
+ Sent 1789431486 bytes 1181983 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91c2: parent a:1a5 limit 24p
+ Sent 2323568712 bytes 1534788 pkt (dropped 2, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91c3: parent a:1a6 limit 24p
+ Sent 1037641778 bytes 685421 pkt (dropped 1170, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91c4: parent a:1a7 limit 24p
+ Sent 1393411388 bytes 920398 pkt (dropped 475, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91c5: parent a:1a8 limit 24p
+ Sent 1708837556 bytes 1128750 pkt (dropped 1176, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91c6: parent a:1a9 limit 24p
+ Sent 912114546 bytes 602489 pkt (dropped 1098, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91c7: parent a:1aa limit 24p
+ Sent 1471661066 bytes 972073 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91c8: parent a:1ab limit 24p
+ Sent 2289095278 bytes 1512031 pkt (dropped 152, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91c9: parent a:1ac limit 24p
+ Sent 1211708441 bytes 802335 pkt (dropped 215, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91ca: parent a:1ad limit 24p
+ Sent 890395970 bytes 588141 pkt (dropped 1122, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91cb: parent a:1ae limit 24p
+ Sent 608444588 bytes 401914 pkt (dropped 52, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91cc: parent a:1af limit 24p
+ Sent 951626564 bytes 628590 pkt (dropped 1070, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91cd: parent a:1b0 limit 24p
+ Sent 2027804398 bytes 1339443 pkt (dropped 1755, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91ce: parent a:1b1 limit 24p
+ Sent 1166332884 bytes 770408 pkt (dropped 1337, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91cf: parent a:1b2 limit 24p
+ Sent 1142390774 bytes 754595 pkt (dropped 1098, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91d0: parent a:1b3 limit 24p
+ Sent 939976312 bytes 620896 pkt (dropped 950, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91d1: parent a:1b4 limit 24p
+ Sent 756561290 bytes 499749 pkt (dropped 1253, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91d2: parent a:1b5 limit 24p
+ Sent 1128475508 bytes 745402 pkt (dropped 2300, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91d3: parent a:1b6 limit 24p
+ Sent 1779904806 bytes 1175691 pkt (dropped 1175, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91d4: parent a:1b7 limit 24p
+ Sent 1520446816 bytes 1004320 pkt (dropped 158, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91d5: parent a:1b8 limit 24p
+ Sent 1154637536 bytes 762680 pkt (dropped 222, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91d6: parent a:1b9 limit 24p
+ Sent 1659224768 bytes 1095974 pkt (dropped 984, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91d7: parent a:1ba limit 24p
+ Sent 812237508 bytes 536502 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91d8: parent a:1bb limit 24p
+ Sent 946555250 bytes 625233 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91d9: parent a:1bc limit 24p
+ Sent 1978214692 bytes 1306686 pkt (dropped 2555, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91da: parent a:1bd limit 24p
+ Sent 2214093842 bytes 1462473 pkt (dropped 779, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91db: parent a:1be limit 24p
+ Sent 1405229826 bytes 928213 pkt (dropped 58, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91dc: parent a:1bf limit 24p
+ Sent 1130403460 bytes 746678 pkt (dropped 1197, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91dd: parent a:1c0 limit 24p
+ Sent 1354770586 bytes 894869 pkt (dropped 95, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91de: parent a:1c1 limit 24p
+ Sent 1374664278 bytes 908009 pkt (dropped 505, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91df: parent a:1c2 limit 24p
+ Sent 1304375060 bytes 861588 pkt (dropped 1611, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91e0: parent a:1c3 limit 24p
+ Sent 1027336438 bytes 678603 pkt (dropped 493, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91e1: parent a:1c4 limit 24p
+ Sent 1119642496 bytes 739558 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91e2: parent a:1c5 limit 24p
+ Sent 1761938870 bytes 1163823 pkt (dropped 533, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91e3: parent a:1c6 limit 24p
+ Sent 638190558 bytes 421567 pkt (dropped 1205, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91e4: parent a:1c7 limit 24p
+ Sent 1503693138 bytes 993253 pkt (dropped 1125, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91e5: parent a:1c8 limit 24p
+ Sent 1088412804 bytes 718944 pkt (dropped 2271, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91e6: parent a:1c9 limit 24p
+ Sent 765059022 bytes 505359 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91e7: parent a:1ca limit 24p
+ Sent 2588092176 bytes 1709516 pkt (dropped 1610, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91e8: parent a:1cb limit 24p
+ Sent 1878835038 bytes 1241047 pkt (dropped 1118, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91e9: parent a:1cc limit 24p
+ Sent 1577432734 bytes 1041955 pkt (dropped 1108, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91ea: parent a:1cd limit 24p
+ Sent 1905356884 bytes 1258552 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91eb: parent a:1ce limit 24p
+ Sent 1472019748 bytes 972362 pkt (dropped 438, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91ec: parent a:1cf limit 24p
+ Sent 1405059638 bytes 928111 pkt (dropped 2554, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91ed: parent a:1d0 limit 24p
+ Sent 1152217162 bytes 761091 pkt (dropped 1233, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91ee: parent a:1d1 limit 24p
+ Sent 1713563508 bytes 1131858 pkt (dropped 1124, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91ef: parent a:1d2 limit 24p
+ Sent 1392552918 bytes 919833 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91f0: parent a:1d3 limit 24p
+ Sent 1729823058 bytes 1142601 pkt (dropped 463, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91f1: parent a:1d4 limit 24p
+ Sent 1193815920 bytes 788564 pkt (dropped 48, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91f2: parent a:1d5 limit 24p
+ Sent 1576092168 bytes 1041064 pkt (dropped 107, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91f3: parent a:1d6 limit 24p
+ Sent 1114673754 bytes 736283 pkt (dropped 55, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91f4: parent a:1d7 limit 24p
+ Sent 1132861276 bytes 748302 pkt (dropped 163, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91f5: parent a:1d8 limit 24p
+ Sent 1800006612 bytes 1188976 pkt (dropped 1279, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91f6: parent a:1d9 limit 24p
+ Sent 1887195494 bytes 1246567 pkt (dropped 52, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91f7: parent a:1da limit 24p
+ Sent 1382373342 bytes 913115 pkt (dropped 295, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91f8: parent a:1db limit 24p
+ Sent 1235932586 bytes 816385 pkt (dropped 6, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91f9: parent a:1dc limit 24p
+ Sent 1092289722 bytes 721513 pkt (dropped 173, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91fa: parent a:1dd limit 24p
+ Sent 856462282 bytes 565719 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91fb: parent a:1de limit 24p
+ Sent 899000440 bytes 593816 pkt (dropped 10, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91fc: parent a:1df limit 24p
+ Sent 1187394658 bytes 784325 pkt (dropped 1306, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91fd: parent a:1e0 limit 24p
+ Sent 1093803830 bytes 722495 pkt (dropped 624, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91fe: parent a:1e1 limit 24p
+ Sent 1407643316 bytes 929802 pkt (dropped 27, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 91ff: parent a:1e2 limit 24p
+ Sent 1803487864 bytes 1191274 pkt (dropped 1260, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9200: parent a:1e3 limit 24p
+ Sent 1112948848 bytes 735142 pkt (dropped 448, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9201: parent a:1e4 limit 24p
+ Sent 1458352938 bytes 963305 pkt (dropped 1, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9202: parent a:1e5 limit 24p
+ Sent 1539313040 bytes 1016790 pkt (dropped 275, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9203: parent a:1e6 limit 24p
+ Sent 1685498300 bytes 1113338 pkt (dropped 345, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9204: parent a:1e7 limit 24p
+ Sent 1396959732 bytes 922726 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9205: parent a:1e8 limit 24p
+ Sent 1779960330 bytes 1175721 pkt (dropped 486, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9206: parent a:1e9 limit 24p
+ Sent 1795378104 bytes 1185910 pkt (dropped 0, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9207: parent a:1ea limit 24p
+ Sent 1553219632 bytes 1025954 pkt (dropped 897, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9208: parent a:1eb limit 24p
+ Sent 754948878 bytes 498679 pkt (dropped 1454, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9209: parent a:1ec limit 24p
+ Sent 1363441324 bytes 900602 pkt (dropped 1158, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 920a: parent a:1ed limit 24p
+ Sent 1297725218 bytes 857189 pkt (dropped 458, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 920b: parent a:1ee limit 24p
+ Sent 1199217594 bytes 792143 pkt (dropped 1285, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 920c: parent a:1ef limit 24p
+ Sent 972198498 bytes 642185 pkt (dropped 1076, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 920d: parent a:1f0 limit 24p
+ Sent 1464450666 bytes 967321 pkt (dropped 1081, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 920e: parent a:1f1 limit 24p
+ Sent 766304856 bytes 506202 pkt (dropped 1317, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 920f: parent a:1f2 limit 24p
+ Sent 1518000534 bytes 1002713 pkt (dropped 1050, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9210: parent a:1f3 limit 24p
+ Sent 1293889924 bytes 854662 pkt (dropped 1050, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9211: parent a:1f4 limit 24p
+ Sent 2016854506 bytes 1332219 pkt (dropped 2672, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9212: parent a:1f5 limit 24p
+ Sent 1298364776 bytes 857618 pkt (dropped 1219, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9213: parent a:1f6 limit 24p
+ Sent 1333717144 bytes 880972 pkt (dropped 1237, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9214: parent a:1f7 limit 24p
+ Sent 1599047838 bytes 1056227 pkt (dropped 114, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9215: parent a:1f8 limit 24p
+ Sent 1226429060 bytes 810112 pkt (dropped 2351, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9216: parent a:1f9 limit 24p
+ Sent 1183730786 bytes 781897 pkt (dropped 1029, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9217: parent a:1fa limit 24p
+ Sent 409925092 bytes 270786 pkt (dropped 50, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9218: parent a:1fb limit 24p
+ Sent 828886622 bytes 547507 pkt (dropped 1098, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 9219: parent a:1fc limit 24p
+ Sent 1550875254 bytes 1024403 pkt (dropped 43, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 921a: parent a:1fd limit 24p
+ Sent 1346292530 bytes 889295 pkt (dropped 1124, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 921b: parent a:1fe limit 24p
+ Sent 1856752716 bytes 1226456 pkt (dropped 1220, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 921c: parent a:1ff limit 24p
+ Sent 1382763942 bytes 913373 pkt (dropped 1488, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 
+qdisc pfifo 921d: parent a:200 limit 24p
+ Sent 1151325178 bytes 760495 pkt (dropped 1229, overlimits 0 requeues 0) 
+ backlog 0b 0p requeues 0 

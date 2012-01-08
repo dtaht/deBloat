@@ -1,0 +1,6 @@
+#!/bin/sh
+IP=172.30.49.1
+t=60
+netperf -l $t -H $IP -t TCP_RR &
+iperf -w512k -t $t -c $IP
+wait
