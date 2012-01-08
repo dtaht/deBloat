@@ -4,15 +4,21 @@
 -- This script expects to be run in /etc/network/if-pre-up.d
 -- To run it manually, do a IFACE=yournetworkcard ./this_script
 -- For NATTED interfaces, use a NATTED=y for a better filter
+-- To select SFQ use QMODEL=sfq. QMODEL=sfqred
+-- (I'll probably make this argv processed soon)
+-- It will automatically detect your network interface type
+-- and 'do more of the right thing'
 
 -- STA_QFQ currently requires a new version of tc
 -- Build a version and stick it somewhere and change
 -- this to suit
 
-TC="~d/git/iproute2/tc/tc -b"
+TC="~d/git/iproute2/tc/tc"
+TCARG="-b"
 
+-- TC="/bin/cat"
 -- TC="/usr/bin/less"
-
+-- TCARG=" "
 -- QFQ can handle up to 32k bins
 -- whether you are willing to wait for them
 -- to be generated is a better question
@@ -52,6 +58,8 @@ MDISC="pfifo limit 32"
 NORMDISC="pfifo limit 32"
 
 -- You shouldn't need to touch anything after this line
+
+sf=string.format
 
 NATTED='n'
 
@@ -164,7 +172,7 @@ MULTICAST=BINS+1
 DEFAULTB=BINS+2
 
 local function ethtool(...)
-   os.execute(string.format("%s %s",ETHTOOL,string.format(...)))
+   os.execute(sf("%s %s",ETHTOOL,sf(...)))
 end
 
 -- Under most workloads there doesn't seem to be a need
@@ -175,9 +183,9 @@ end
 -- FIXME: Handle multi queued interfaces
 
 local function bql_setup(iface)
-   local f = io.open(string.format("/sys/class/net/%s/queues/tx-0/byte_queue_limits/limit_max",iface),'w')
+   local f = io.open(sf("/sys/class/net/%s/queues/tx-0/byte_queue_limits/limit_max",iface),'w')
    if f ~= nil then
-      f:write(string.format("%d",MAX_HWQ_BYTES))
+      f:write(sf("%d",MAX_HWQ_BYTES))
       f:close()
    else
       print("Your system does not support byte queue limits")
@@ -209,20 +217,20 @@ end
 -- Constructing something that was ** reversible **
 -- and cleaner to express would be better that this
 
-local castring=string.format("class add dev %s %%s\n",IFACE)
-local fastring=string.format("filter add dev %s %%s\n",IFACE)
-local qastring=string.format("qdisc add dev %s %%s\n",IFACE)
+local castring=sf("class add dev %s %%s\n",IFACE)
+local fastring=sf("filter add dev %s %%s\n",IFACE)
+local qastring=sf("qdisc add dev %s %%s\n",IFACE)
 
 local function ca(...) 
-      return tc:write(string.format(castring,string.format(...))) 
+      return tc:write(sf(castring,sf(...))) 
 end
 
 local function fa(...) 
-      return tc:write(string.format(fastring,string.format(...))) 
+      return tc:write(sf(fastring,sf(...))) 
 end
 
 local function qa(...) 
-      return tc:write(string.format(qastring,string.format(...))) 
+      return tc:write(sf(qastring,sf(...))) 
 end
 
 -- QFQ: Create a bin attached to the parent class
@@ -287,7 +295,7 @@ end
 -- recursion would be better and if we can get away from globals
 -- we can make it possible to do red, etc
 
-local function wireless()
+local function wireless_qfq()
    VO=0x10; VI=0x20; BE=0x30; BK=0x40
    local QUEUES = { BE, VO, VI, BK }
    
@@ -305,10 +313,77 @@ local function wireless()
    end
 end
 
-local function ethernet()
+-- Eric's SFQ enhancements
+-- This has htb support which I need to add intelligently
+-- $TC qdisc add dev $DEV root handle 1: est 1sec 8sec htb default 1
+
+-- $TC class add dev $DEV parent 1: classid 1:1 est 1sec 8sec htb \
+--       rate 200Mbit mtu 40000 quantum 80000
+
+-- $TC qdisc add dev $DEV parent 1:1 handle 10: est 1sec 8sec sfq \
+--       limit 2000 depth 10 headdrop flows 1000 divisor 16384
+
+-- This just enables sfq more correctly for wireless.
+
+local function wireless_sfq()
+   VO=0x10; VI=0x20; BE=0x30; BK=0x40
+   local QUEUES = { BE, VO, VI, BK }
+   
+   qa("handle 1 root mq")
+   qa("parent 1:1 handle %x sfq",VO)
+   qa("parent 1:2 handle %x sfq",VI)
+   qa("parent 1:3 handle %x sfq",BE)
+   qa("parent 1:4 handle %x sfq",BK)
+   
+   -- FIXME: We must get ALL multicast out of the other queues
+   -- and into the VO queue. Always. Somehow.-
+end
+
+
+-- As tested by eric. sfqred. This is designed to be competive with
+-- my qfq implementation....
+-- I have to think about the calculations for 100Mbit and below...
+
+-- tc qdisc add dev $DEV parent 1:1 handle 10: est 1sec 4sec sfq \
+--       limit 3000 headdrop flows 512 divisor 16384 \
+--       redflowlimit 100000 min 8000 max 60000 probability 0.20 ecn
+-- not done yet
+
+local function wireless_sfq_red()
+   VO=0x10; VI=0x20; BE=0x30; BK=0x40
+   local QUEUES = { BE, VO, VI, BK }
+   
+   qa("handle 1 root mq")
+   qa("parent 1:1 handle %x sfq",VO)
+   qa("parent 1:2 handle %x sfq",VI)
+   qa("parent 1:3 handle %x sfq",BE)
+   qa("parent 1:4 handle %x sfq",BK)
+   
+   -- FIXME: We must get ALL multicast out of the other queues
+   -- and into the VO queue. Always. Somehow.-
+
+end
+
+local function wireless(model)
+	if model == 'sfq' then
+		wireless_sfq()
+	elseif model == 'qfq' then
+		wireless_qfq()
+	elseif model == 'sfqred' then
+		wireless_sfq_red()
+	end
+end
+
+local function ethernet(model)
    ethernet_setup(IFACE)
-   qa("handle %x root qfq",10)
-   model_qfq_pfifo_fast(10)
+   if model == "qfq" then
+	qa("handle %x root qfq",10)
+	model_qfq_pfifo_fast(10)
+   elseif model == "sfq" then
+	qa("handle %x root sfq",10)
+   elseif model == "sfqred" then
+	qa("handle %x root sfq",10)
+   end
 end
 
 -- And away we go
@@ -318,8 +393,8 @@ itype=interface_type(IFACE)
 
 if itype == 'wireless' or itype == 'ethernet' then
    kernel_prereqs(PREREQS)
-   os.execute(string.format("tc qdisc del dev %s root",IFACE))
-   tc=io.popen(TC,'w')
-   if itype == 'wireless' then wireless() end
-   if itype == 'ethernet' then ethernet() end
+   os.execute(sf("tc qdisc del dev %s root",IFACE))
+   tc=io.popen(sf("%s %s",TC,TCARG),'w')
+   if itype == 'wireless' then wireless(QMODEL) end
+   if itype == 'ethernet' then ethernet(QMODEL) end
 end
