@@ -1,0 +1,257 @@
+#! /bin/bash
+
+VERSION="v0.1.1"
+
+# Detect Lua interpreter (prefer LuaJIT 2)
+if [ ! -z "${LUA}" ]; then
+  if [ -z "$(which ${LUA})" ]; then
+    LUA=""
+  fi
+fi
+
+if [ -z "${LUA}" ]; then
+  LUA="luajit2"
+  if [ -z "$(which ${LUA})" ]; then
+    LUA="luajit"
+    if [ -z "$(which ${LUA})" ]; then
+      LUA="lua"
+
+      if [ -z "$(which ${LUA})" ]; then
+        echo "Error: luajit2, luajit and lua executables not found" >&2
+        exit 1
+      fi
+    fi
+  fi
+fi
+
+function version()
+{
+  cat << EOF
+Lua to JSON translator ${VERSION}
+
+EOF
+}
+
+function usage()
+{
+  cat << EOF
+Usage:
+
+  $0 [options] < in.lua > out.json
+
+Options:
+
+  -h    Print this text
+  -v    Print script version
+  -O    Force tables to be serialized as objects
+        (default: off)
+  -e    Do not print terminating EOL (default: do print)
+  -r    Prefix "return " to the input before loading (default: do not prefix)
+  -G    Do not use global environment protection when loading the data
+        (default: do use protection)
+  -S    Expose Lua environment to the loaded data
+        (default: load data into clean environment)
+
+Notes:
+
+  1. The lua2json by default expects the Lua data to be prefixed with `return`:
+
+      return { foo = 42 }
+
+  If your data is not, as follows:
+
+      { foo = 42 }
+
+  ...then use `-r` option.
+
+  2. Note that while some attempts to sandbox the data are made,
+     this tool does not provide any serious protection from malicious code
+     (like malformed Lua bytecode, code with infinite loops,
+     code that eats memory etc.)
+
+     Do not use on Lua data that you do not trust.
+
+EOF
+# TODO: Support this!
+#   -n    Do not pretty-print JSON code (default: do pretty-print)
+}
+
+NO_PRETTY_PRINT=true # TODO: Must be false
+FORCE_OBJECTS=false
+SKIP_TERMINATING_EOL=false
+PREFIX_WITH_RETURN=false
+NO_STRICT=false
+EXPOSE_G=false
+
+while getopts ":hvnOerGS" opt; do
+  case ${opt} in
+    h)
+      version
+      usage
+      exit 0
+      ;;
+    v)
+      version
+      exit 0
+      ;;
+# TODO: Implement
+#    n)
+#      NO_PRETTY_PRINT=true
+#      ;;
+    O)
+      FORCE_OBJECTS=true
+      ;;
+    e)
+      SKIP_TERMINATING_EOL=true
+      ;;
+    r)
+      PREFIX_WITH_RETURN=true
+      ;;
+    G)
+      NO_STRICT=true
+      ;;
+    S)
+      EXPOSE_G=true
+      ;;
+    \?)
+      echo "unknown option: -${OPTARG}" >&2
+      exit 1
+      ;;
+    :)
+      echo "option -${OPTARG} requires an argument" >&2
+      exit 1
+      ;;
+  esac
+done
+
+${LUA} -e "
+
+local NO_PRETTY_PRINT = ${NO_PRETTY_PRINT}
+local FORCE_OBJECTS = ${FORCE_OBJECTS}
+local SKIP_TERMINATING_EOL = ${SKIP_TERMINATING_EOL}
+local PREFIX_WITH_RETURN = ${PREFIX_WITH_RETURN}
+local NO_STRICT = ${NO_STRICT}
+local EXPOSE_G = ${EXPOSE_G}
+
+--------------------------------------------------------------------------------
+
+pcall(require, 'luarocks.require') -- Ignoring errors
+
+local json_encode, json_util
+do
+  local json, err = pcall(require, 'json')
+  if not json then
+    io.stdout:write(
+        err, '\n\n',
+        'try running \'luarocks install luajson\'', '\n'
+      )
+    io.stdout:flush()
+    os.exit(1)
+  end
+
+  json_util = require('json.util')
+  json_encode = require('json.encode')
+end
+
+--------------------------------------------------------------------------------
+
+local input = assert(io.stdin:read('*a'))
+
+-- TODO: Sandbox data?
+if PREFIX_WITH_RETURN then
+  input = 'return ' .. input
+end
+
+local data_fn, err = loadstring(input, '=stdin')
+if not data_fn then
+  error('failed to read data: ' .. tostring(err))
+end
+
+local strict_index = function(t, k)
+    error(
+        'data attempted to read from global \''
+        .. (tostring(k) or '(?)')
+        .. '\' while loading',
+        2
+      )
+  end
+
+local index
+if EXPOSE_G then
+  index = _G
+  if not NO_STRICT then
+    setmetatable(
+        _G,
+        {
+          __metatable = 'lua2json._G';
+          __index = strict_index;
+        }
+      )
+  end
+else
+  index = NO_STRICT
+    and function(t, k) return nil end
+     or strict_index
+end
+
+local newindex = NO_STRICT
+  and function(t, k, v)
+        rawset(t, k, v)
+      end
+   or function(t, k, v)
+        error(
+            'data attempted to write to global \''
+            .. (tostring(k) or '(?)')
+            .. '\' while loading',
+            2
+          )
+      end
+
+local env = setmetatable(
+    { },
+    {
+      __metatable = 'lua2json.data';
+      __index = index;
+      __newindex = newindex;
+    }
+  )
+
+setfenv(data_fn, env)
+
+local ok, data = xpcall(data_fn, function(msg) return debug.traceback(msg) end)
+if not ok then
+  local err = data
+  error('failed to load data:\n' .. (err or 'nothing returned'))
+end
+
+local encode_options = nil
+if not NO_PRETTY_PRINT then
+  error('TODO: Implement JSON pretty-printing!')
+end
+
+if FORCE_OBJECTS then
+  encode_options = json_util.merge(
+      {
+        array =
+        {
+          isArray = function() return false end;
+        };
+      },
+      encode_options
+    )
+end
+
+local data, err = json_encode(data, encode_options)
+if err then
+  error('luajson error: ' .. err)
+end
+
+io.stdout:write(data)
+
+if not SKIP_TERMINATING_EOL then
+  io.stdout:write('\n')
+end
+
+io.stdout:flush()
+
+"

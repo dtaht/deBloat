@@ -34,3 +34,19 @@ day     cars
 
 
 However, to draw a CDF, gnuplot expects the following format: Given a number of cars Z (x-value), what percentage of days at most Z cars passed on the street? To make this more clear, Listing 2 shows the outcome that gnuplot expects. 
+
+
+  --   the total number days in the measurement period
+    COUNT(day) OVER (ORDER BY cars) / 
+       (SELECT COUNT(*) FROM cars_per_day)::real AS y
+FROM cars_per_day
+
+    function cdf(t) 
+       c = # t
+       r = { } 
+       for i,v in (t) do
+	  r[i] = v/c
+       end
+
+       return(r)
+    end
