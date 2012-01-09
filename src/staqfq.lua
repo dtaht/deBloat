@@ -493,20 +493,20 @@ end
 -- Constructing something that was ** reversible **
 -- and cleaner to express would be better that this
 
-local castring=sf("class add dev %s %%s\n",IFACE)
-local fastring=sf("filter add dev %s %%s\n",IFACE)
-local qastring=sf("qdisc add dev %s %%s\n",IFACE)
+local castring=sf("class add dev %s ",IFACE)
+local fastring=sf("filter add dev %s ",IFACE)
+local qastring=sf("qdisc add dev %s ",IFACE)
 
 local function ca(...) 
-      return tc:write(sf(castring,sf(...))) 
+   return tc:write(castring,sf(...),"\n") 
 end
 
 local function fa(...) 
-      return tc:write(sf(fastring,sf(...))) 
+   return tc:write(fastring,sf(...),"\n") 
 end
 
 local function qa(...) 
-      return tc:write(sf(qastring,sf(...))) 
+   return tc:write(qastring,sf(...),"\n") 
 end
 
 -- QFQ: Create a bin attached to the parent class
