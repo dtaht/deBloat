@@ -149,7 +149,6 @@ function spewf(file,s)
    return nil
 end
 
-
 -- slurp a file into a table
 
 function tslurpf(file)
@@ -192,11 +191,11 @@ end
 -- of tunnel.
 
 function interface_type(iface)
-   if iface == 'lo' then return('localhost') end
-   if string.sub(iface,1,3) == 'ifb' then return('ifb') end
-   if string.find(iface,'%.') ~= nil then return('vlan') end
-   if string.sub(iface,1,3) == 'gre' then return('tunnel') end
-   if string.sub(iface,1,2) == 'br' then return('bridge') end
+   if iface == 'lo'           then return('localhost') end
+   if iface:sub(1,3) == 'ifb' then return('ifb') end
+   if iface:find('%.') ~= nil then return('vlan') end
+   if iface:sub(1,3) == 'gre' then return('tunnel') end
+   if iface:sub(1,2) == 'br'  then return('bridge') end
    if file_exists(sf("/sys/class/net/%s/phy80211/name",iface)) then return ('wireless') end
 return ('ethernet')
 end
@@ -431,6 +430,21 @@ local function bql_setup(iface)
    return c
 end
 
+-- oo is no help
+-- local function string:spewf(data)
+--   spewf(self,data)
+-- end
+
+-- s:spewf(somewhere)
+
+-- function string:spewf(file)
+--   spewf(file,self)
+-- end
+
+-- local function speed_set(iface,speed) 
+--   return sf("/sys/class/net/%s/speed",iface):spewf(speed)
+-- end
+
 -- Maybe better done with ethtool
 
 local function speed_set(iface,speed) 
@@ -598,6 +612,92 @@ local function efqr(parent, handle, speed, flows)
    qa(sf("parent %s handle %x: est 1sec 4sec sfq limit 3000 headdrop flows %d divisor 16384 redflowlimit 100000 min 8000 max 60000 probability 0.20 ecn",parent,handle,speed,flows))
 end
 
+function iptables4(...)
+   exec(sf("iptables %s",...))
+end
+
+function iptables6(...)
+   exec(sf("ip6tables %s",...))
+end
+
+function iptables(...)
+   iptables4(...)
+   iptables6(...)
+end
+
+function recreate_filter(t)
+   assert(t.chain, "ERROR: chain parameter is missing!")
+   assert(t.table, "ERROR: table parameter is missing!")
+   iptables(sf("-t %s -F %s", t.table, t.chain))
+   iptables(sf("-t %s -X %s", t.table,t.chain))
+   iptables(sf("-t %s -N %s", t.table,t.chain))
+end
+
+local function mcast_classify(chain,class) 
+   iptables(sf("-t mangle -A %s -m pkttype ! --pkt-type unicast -j CLASSIFY --set-class %s",chain,class))
+end
+
+local ds = { ["BE"]=0, ["AF11"]=10, ["AF12"]=12, ["AF13"]=14, ["AF21"]=18,
+	     ["AF22"]=20, ["AF23"]=22, ["AF31"]=26, ["AF32"]=28,["AF33"]=30,
+	     ["AF41"]=34,["AF42"]=36,["AF43"]=38,["EF"]=46,["CS1"]=8,["CS2"]=16,
+	     ["CS3"]=24, ["CS4"]=32,["CS5"]=40,["CS6"]=48,["CS7"]=56,["BOFH"]=4,
+	     ["ANT"]=42, ["LB"]=63,["P2P"]=9 }
+
+-- No matter what I try I get this wrong. You would think 1:1,2,3,4 was the right thing. Nope.
+-- And IPv6 multicast is never matched
+
+local function mac80211e() 
+
+   local t = "-t mangle -A W80211e -m dscp --dscp %d -j CLASSIFY --set-class 1:%d -m comment --comment '%s'"
+   local function f(...)
+      iptables(sf(t,...))
+   end
+   
+   recreate_filter({table="mangle",chain="W80211e"})
+   
+   iptables("-t mangle -A W80211e -j CLASSIFY --set-class 1:3 -m comment --comment 'Reclassify BE'")
+   f(ds.EF,  1,'Voice (EF)')
+   f(ds.CS6, 1,'Critical (VO)')
+   f(ds.ANT, 2,'Ants(VI)')
+   f(ds.BOFH,2,'Typing (VI)')
+   f(ds.AF41,2,'Net Radio(VI)')
+   f(ds.CS3, 2,'Video (VI)')
+   f(ds.CS1, 4,'Background (BK)')
+   f(ds.CS5, 4,'General Stuff (BK)')
+   f(ds.P2P, 4,'P2P (BK)')
+   f(ds.CS2, 4,'Background (BK)')
+   f(ds.AF33,4,'Background (AF33)')
+   mcast_classify("W80211e","1:1")
+end
+
+
+-- I thought maybe this was the right thing. Nope.
+-- I HAVE seen this work at some point in the not-so-distant past
+
+-- local function mac80211e() 
+
+--    local t = "-t mangle -A W80211e -m dscp --dscp %d -j CLASSIFY --set-class %d:0 -m comment --comment '%s'"
+--    local function f(...)
+--       iptables(sf(t,...))
+--    end
+   
+--    recreate_filter({table="mangle",chain="W80211e"})
+   
+--    iptables("-t mangle -A W80211e -j CLASSIFY --set-class 30:0 -m comment --comment 'Reclassify BE'")
+--    f(ds.EF,  10,'Voice (EF)')
+--    f(ds.CS6, 10,'Critical (VO)')
+--    f(ds.ANT, 20,'Ants(VI)')
+--    f(ds.BOFH,20,'Typing (VI)')
+--    f(ds.AF41,20,'Net Radio(VI)')
+--    f(ds.CS3, 20,'Video (VI)')
+--    f(ds.CS1, 40,'Background (BK)')
+--    f(ds.CS5, 40,'General Stuff (BK)')
+--    f(ds.P2P, 40,'P2P (BK)')
+--    f(ds.CS2, 40,'Background (BK)')
+--    f(ds.AF33,40,'Background (AF33)')
+--    mcast_classify("W80211e","10:0")
+-- end
+
 -- Iptables wrappers that we need due to lack of filters
 -- Maybe use a DEBLOAT chain. It would be good to have a universal number
 -- to reduce the number of match rules
@@ -610,6 +710,7 @@ local function iptables_remove(iface,rule)
 end
 
 local function iptables_insert(iface,rule)
+   iptables(sf("-t mangle -o %s -A POSTROUTING -j %s",iface,rule))
 end
 
 -- Basic SFQ on wireless
@@ -622,6 +723,7 @@ end
 local function wireless_filters()
 -- FIXME: We need filters to use the various queues
 -- The only way to get them is to use iptables presently
+-- and even that's not working
 end
 
 local function wireless_setup(queuetype)
@@ -826,6 +928,11 @@ if itype == 'wireless' or itype == 'ethernet' then
    kernel_prereqs(PREREQS)
    exec(sf("tc qdisc del dev %s root",IFACE))
    tc=popen(sf("%s %s",TC,TCARG),'w')
-   if itype == 'wireless' then wireless(QMODEL) end
+   if itype == 'wireless' then 
+      wireless(QMODEL) 
+--     FIXME: you watch this code set the class, then not show up in tc
+--     mac80211e()
+--     iptables_insert(IFACE,"W80211e")
+   end
    if itype == 'ethernet' then ethernet(QMODEL) end
 end
