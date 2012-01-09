@@ -26,7 +26,7 @@ TCARG="-b"
 -- is also a good question. 512 is 4x
 -- as many bins as SFQ, sooo....
 
-BINS=512
+BINS=2048
 
 -- (I have tested as many as 2048 bins)
 -- Ran out of kernel memory at 32000
@@ -68,9 +68,13 @@ NORMDISC="pfifo limit 32"
 
 -- You shouldn't need to touch anything after this line
 
-sf=string.format
-
 NATTED='n'
+
+sf=string.format
+exec=os.execute
+
+VO=0x10; VI=0x20; BE=0x30; BK=0x40
+local WQUEUES = { BE, VO, VI, BK }
 
 IFACE=os.getenv("IFACE")
 if (IFACE == nil) then 
@@ -78,18 +82,8 @@ if (IFACE == nil) then
    os.exit(-1) 
 end
 
--- FIXME - use modprobe on linux, insmod on openwrt
-
 QMODEL='qfq'
-
 PREREQS = { 'sch_qfq', 'cls_u32', 'cls_flow' }
-
-if (IFACE == nil) then 
-   print("Error: The IFACE environment variable must be set")
-   os.exit(-1) 
-end
-
--- Override various defaults with env vars
 
 -- Some utility functions
 
@@ -102,7 +96,7 @@ end
 
 function kernel_prereqs(prereqs)
    for i,v in ipairs(prereqs) do
-      os.execute(string.format("%s %s",INSMOD,v))
+      exec(sf("%s %s",INSMOD,v))
    end
 end
 
@@ -113,10 +107,10 @@ end
 function interface_type(iface)
    if iface == 'lo' then return('localhost') end
    if string.sub(iface,1,3) == 'ifb' then return('ifb') end
-   --   if string.find(iface,'.') ~= nil then return('vlan') end syntax issue fixme
+   if string.find(iface,'%.') ~= nil then return('vlan') end
    if string.sub(iface,1,3) == 'gre' then return('tunnel') end
    if string.sub(iface,1,2) == 'br' then return('bridge') end
-   if file_exists(string.format("/sys/class/net/%s/phy80211/name",iface)) then return ('wireless') end
+   if file_exists(sf("/sys/class/net/%s/phy80211/name",iface)) then return ('wireless') end
 return ('ethernet')
 end
 
@@ -143,7 +137,8 @@ else
    ETHTOOL="/sbin/ethtool"
 end
 
-FORCE_100MBIT=false
+FORCE_SPEED=0
+FORCE_RING=0
 
 --[ I miss LISP. There's got to be a way to lookup the self name...
 local function defaults(param)
@@ -151,7 +146,10 @@ local function defaults(param)
 end
 --]
 
+-- Override various defaults with env vars
+
 if os.getenv("TC") ~= nil then TC=os.getenv("TC") end
+if os.getenv("TCARG") ~= nil then TCARG=os.getenv("TCARG") end
 if os.getenv("MDISC") ~= nil then MDISC=os.getenv("MDISC") end
 if os.getenv("BIGDISC") ~= nil then BIGDISC=os.getenv("BIGDISC") end
 if os.getenv("NORMDISC") ~= nil then NORMDISC=os.getenv("NORMDISC") end
@@ -160,7 +158,9 @@ if os.getenv("MAX_HWQ_BYTES") ~= nil then MAX_HWQ_BYTES=os.getenv("MAX_HWQ_BYTES
 if os.getenv("ETHTOOL") ~= nil then ETHTOOL=os.getenv("ETHTOOL") end
 if os.getenv("NATTED") ~= nil then NATTED=os.getenv("NATTED") end
 if os.getenv("QMODEL") ~= nil then QMODEL=os.getenv("QMODEL") end
-if os.getenv("FORCE_100MBIT") ~= nil then FORCE_100MBIT=os.getenv("FORCE_100MBIT") end
+if os.getenv("FORCE_SPEED") ~= nil then FORCE_SPEED=os.getenv("FORCE_SPEED") end
+if os.getenv("FORCE_RING") ~= nil then FORCE_RING=os.getenv("FORCE_RING") end
+
 
 -- Maltreat multicast especially. When handed to a load balancing 
 -- filter based on IPs, multicast addresses are all over the map.
@@ -181,7 +181,7 @@ MULTICAST=BINS+1
 DEFAULTB=BINS+2
 
 local function ethtool(...)
-   os.execute(sf("%s %s",ETHTOOL,sf(...)))
+   exec(sf("%s %s",ETHTOOL,sf(...)))
 end
 
 -- Under most workloads there doesn't seem to be a need
@@ -189,35 +189,81 @@ end
 -- along with a byte limit of 4500 gives a nice symmetry:
 -- 60+ ACKS or 3 big packets.
 
--- FIXME: Handle multi queued interfaces
+-- Lua has extension libraries to do this better, but
+-- I'm trying to stick with the base for now.
+-- return number of hardware queues found
 
 local function bql_setup(iface)
-   local f = io.open(sf("/sys/class/net/%s/queues/tx-0/byte_queue_limits/limit_max",iface),'w')
-   if f ~= nil then
-      f:write(sf("%d",MAX_HWQ_BYTES))
+   local c = 0
+   local f = io.open(sf("/sys/class/net/%s/queues/tx-%d/byte_queue_limits/limit_max",iface,c),'w')
+   while f ~= nil do
+      if MAX_HWQ_BYTES > 0 then
+	 f:write(sf("%d",MAX_HWQ_BYTES))
+      end
       f:close()
-   else
-      print("Your system does not support byte queue limits")
+      c = c + 1
+      f = io.open(sf("/sys/class/net/%s/queues/tx-%d/byte_queue_limits/limit_max",iface,c),'w')
    end
+   return c
 end
+
+-- Maybe better done with ethtool
+
+local function speed_set(iface,speed) 
+   local f = io.open(sf("/sys/class/net/%s/speed",iface),'w')
+   if f ~= nil then
+      local s = f:write(speed)
+      f:close()
+      return s
+   end
+   return nil
+end
+
+local function speed_get(iface) 
+   local f = io.open(sf("/sys/class/net/%s/speed",iface),'r')
+   if f ~= nil then
+      local s = f:read("*l")
+      f:close()
+      return s
+   end
+   return nil
+end
+
+-- FIXME: detect speed reliably somehow
+-- wireless is hard... wired may vary
+-- when going up or down
+
+-- local speedtotxring = 
+
+local speedtoethtool = { ["100"] = "0x008",
+			 ["10"] = "0x002" }
+
 
 -- TSO does terrible things to the scheduler
 -- GSO does as well
 -- UFO is not a feature of most devices
 
+-- In the long run I think we want to disable
+-- TSO and GSO entirely below 100Mbit. I'd
+-- argue for same for gigE, too, for desktops
+
 local function ethernet_setup(iface)
--- for testing, limit ethernet to 100Mbit
-   if FORCE_100MBIT then
+-- for testing, limit ethernet to SPEED
+   if FORCE_SPEED then
       ethtool("-s %s advertise 0x008",iface)
-      ethtool("-G %s tx 64",iface)
-      bql_setup(iface)
    end
+   if FORCE_RING then
+      ethtool(sf("-G %s tx %d",iface,FORCE_RING))
+   end
+   local queues = bql_setup(iface)
    ethtool("-K %s gso off",iface)
    ethtool("-K %s tso off",iface)
    ethtool("-K %s ufo off",iface)
+   return queues
 end
 
 -- if type(arg) == 'table' foreach arg self(arg)
+
 -- Some TC helpers
 
 -- TC tends to be repetitive and hard to read
@@ -282,12 +328,92 @@ local function q_bins(parent)
    end
 end
 
+-- We can do simple per-stream load balancing across multiple hardware queues
+-- thusly. This assumes your IPv6 isn't natted.... 
+
+local function mqprio_bins(parent,queues)
+if NATTED == 'y' then
+   fa("protocol ipv6 parent %x: handle 3 prio 94 flow hash keys proto-dst,rxhash divisor %d",parent,queues)
+   fa("protocol all parent %x: handle 3 prio 97 flow hash keys proto-dst,nfct-src divisor %d",parent,queues)
+else
+   fa("protocol all parent %x: handle 3 prio 97 flow hash keys proto-dst,rxhash divisor %d",parent,queues)
+end
+-- At one point I was trying to handle ipv6 separately
+-- fa("protocol ipv6 parent %x: handle 4 prio 98 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
+end
+
+-- Eric's Enhanced SFQ 
+
+-- FIXME: hard coded for 200Mbit
+-- I'm going to argue that depth, flows, speed all need to be
+-- done via something kleinrock-like. The problem is that 
+-- we don't know the delay without hitting the next hop
+-- And we can't get the next hop until after the interface is
+-- up. And even then we can only measure RTT, which is off
+-- by a factor of three on the two different systems I've looked at
+
+-- FIXME: I don't think I should be measuring speed in megabits
+-- Eric's original code had a mtu of 40000, which I assume is needed for TSO/GSO to work.
+-- These quantums are way too large for lower speeds
+
+local function htb_sfq(speed,flows)
+   qa("root handle 1: est 1sec 8sec htb default 1")
+   ca("parent 1: classid 1:1 est 1sec 8sec htb rate 200Mbit mtu 1500 quantum 80000")
+   qa("parent 1:1 handle 10: est 1sec 8sec sfq limit 2000 depth 10 headdrop flows 1000 divisor 16384")
+end
+
+local function htb_sfq_red(speed,flows)
+   qa("root handle 1: est 1sec 8sec htb default 1")
+   ca("parent 1: classid 1:1 est 1sec 8sec htb rate 200Mbit mtu 1500 quantum 80000")
+   qa("parent 1:1 handle 10: est 1sec 4sec sfq limit 3000 headdrop flows 512 divisor 16384 redflowlimit 100000 min 8000 max 60000 probability 0.20 ecn")
+end
+
+local function efq(parent, handle, speed, flows)
+   qa(sf("parent %s handle %x: est 1sec 8sec sfq limit 2000 depth 24 headdrop flows %d divisor 16384",
+	 parent,handle,flows))
+end
+
+local function efqr(parent, handle, speed, flows)
+   qa(sf("parent %s handle %x: est 1sec 4sec sfq limit 3000 headdrop flows %d divisor 16384 redflowlimit 100000 min 8000 max 60000 probability 0.20 ecn",parent,handle,speed,flows))
+end
+
+-- Basic SFQ on wireless
+-- FIXME: We must get ALL multicast out of the other queues
+-- and into the VO queue. Always. Somehow. 
+
+local function wireless_sfq()
+   qa("handle 1 root mq")
+   qa("parent 1:1 handle %x sfq",VO)
+   qa("parent 1:2 handle %x sfq",VI)
+   qa("parent 1:3 handle %x sfq",BE)
+   qa("parent 1:4 handle %x sfq",BK)
+end
+
+-- erics sfq and erics sfqred with 
+-- some arbitrary speeds and bandwidths (unused)
+-- TiQ would be better
+
+local function wireless_efq()
+   qa("handle 1 root mq")
+   efq("1:1",VO,20,30)
+   efq("1:2",VI,150,20)
+   efq("1:3",BE,150,1000)
+   efq("1:4",BK,50,10)
+end
+
+local function wireless_efqr()
+   qa("handle 1 root mq")
+   efqr("1:1",VO,20,30)
+   efqr("1:2",VI,100,20)
+   efqr("1:3",BE,150,1000)
+   efqr("1:4",BK,50,10)
+end
 
 -- FIXME: add HTB rate limiter support for a hm gateway
 -- What we want are various models expressed object orientedly
 -- so we can tie them together eventually
 
-local function model_qfq_pfifo_fast(base)
+local function model_qfq_subdisc(base)
    cb(base,MULTICAST,MDISC)
    cb(base,DEFAULTB,NORMDISC)
    fa_defb(base)
@@ -300,109 +426,68 @@ local function model_sfq(base)
    qa("parent %x sfq",base)
 end
 
--- Wireless devices are multi-queued
--- recursion would be better and if we can get away from globals
--- we can make it possible to do red, etc
+-- Wireless devices are multi-queued - BUT the hardware
+-- enforces differences in behavior vs the queues
+-- (actually hostapd does that)
 
 local function wireless_qfq()
-   VO=0x10; VI=0x20; BE=0x30; BK=0x40
-   local QUEUES = { BE, VO, VI, BK }
-   
    qa("handle 1 root mq")
    qa("parent 1:1 handle %x qfq",VO)
    qa("parent 1:2 handle %x qfq",VI)
    qa("parent 1:3 handle %x qfq",BE)
    qa("parent 1:4 handle %x qfq",BK)
    
-   -- FIXME: We must get ALL multicast out of the other queues
-   -- and into the VO queue. Always. Somehow.-
-
-   for i,v in ipairs(QUEUES) do
-      model_qfq_pfifo_fast(v)
+   for i,v in ipairs(WQUEUES) do
+      model_qfq_subdisc(v)
    end
 end
 
--- Eric's SFQ enhancements
--- This has htb support which I need to add intelligently
--- $TC qdisc add dev $DEV root handle 1: est 1sec 8sec htb default 1
 
--- $TC class add dev $DEV parent 1: classid 1:1 est 1sec 8sec htb \
---       rate 200Mbit mtu 40000 quantum 80000
-
--- $TC qdisc add dev $DEV parent 1:1 handle 10: est 1sec 8sec sfq \
---       limit 2000 depth 10 headdrop flows 1000 divisor 16384
-
--- This just enables sfq more correctly for wireless.
-
-local function wireless_sfq()
-   VO=0x10; VI=0x20; BE=0x30; BK=0x40
-   local QUEUES = { BE, VO, VI, BK }
-   
-   qa("handle 1 root mq")
-   qa("parent 1:1 handle %x sfq",VO)
-   qa("parent 1:2 handle %x sfq",VI)
-   qa("parent 1:3 handle %x sfq",BE)
-   qa("parent 1:4 handle %x sfq",BK)
-   
-   -- FIXME: We must get ALL multicast out of the other queues
-   -- and into the VO queue. Always. Somehow.-
-end
-
-
--- As tested by eric. sfqred. This is designed to be competive with
--- my qfq implementation....
 -- I have to think about the calculations for 100Mbit and below...
 
--- tc qdisc add dev $DEV parent 1:1 handle 10: est 1sec 4sec sfq \
---       limit 3000 headdrop flows 512 divisor 16384 \
---       redflowlimit 100000 min 8000 max 60000 probability 0.20 ecn
--- not done yet
+-- FIXME: Think on the architecture and models harder
+-- first. Need to also be able to stick HSFC or HTB
+-- on top of this
 
-local function wireless_sfq_red()
-   VO=0x10; VI=0x20; BE=0x30; BK=0x40
-   local QUEUES = { BE, VO, VI, BK }
-   
-   qa("handle 1 root mq")
-   qa("parent 1:1 handle %x sfq",VO)
-   qa("parent 1:2 handle %x sfq",VI)
-   qa("parent 1:3 handle %x sfq",BE)
-   qa("parent 1:4 handle %x sfq",BK)
-   
-   -- FIXME: We must get ALL multicast out of the other queues
-   -- and into the VO queue. Always. Somehow.-
-
-end
+WCALLBACKS = { ["qfq"] = wireless_qfq, 
+	       ["sfq"] = wireless_sfq,
+	       ["efq"] = wireless_efq,
+	       ["efqred"] = wireless_efqr }
 
 local function wireless(model)
+   --   if WCALLBACKS[model] ~= nil then return WCALLBACKS[model]() end
 	if model == 'sfq' then
 		wireless_sfq()
 	elseif model == 'qfq' then
 		wireless_qfq()
 	elseif model == 'sfqred' then
-		wireless_sfq_red()
+		wireless_efqr()
 	end
 end
 
 local function ethernet(model)
-   ethernet_setup(IFACE)
-   if model == "qfq" then
-	qa("handle %x root qfq",10)
-	model_qfq_pfifo_fast(10)
-   elseif model == "sfq" then
-	qa("handle %x root sfq",10)
-   elseif model == "sfqred" then
-	qa("handle %x root sfq",10)
+   local queues = ethernet_setup(IFACE)
+   if queues == 1 then
+      if model == "qfq" then
+	 qa("handle %x root qfq",10)
+	 model_qfq_subdisc(10)
+      elseif model == "sfq" then
+	 qa("handle %x root sfq",10)
+      elseif model == "sfqred" then
+	 qa("handle %x root sfq",10)
+      end
+   elseif queues > 1 then
+      print("do something intelligent")
    end
 end
 
--- And away we go
 -- FIXME - do something intelligent when faced with a bridge or vlan
 
 itype=interface_type(IFACE)
 
 if itype == 'wireless' or itype == 'ethernet' then
    kernel_prereqs(PREREQS)
-   os.execute(sf("tc qdisc del dev %s root",IFACE))
+   exec(sf("tc qdisc del dev %s root",IFACE))
    tc=io.popen(sf("%s %s",TC,TCARG),'w')
    if itype == 'wireless' then wireless(QMODEL) end
    if itype == 'ethernet' then ethernet(QMODEL) end
