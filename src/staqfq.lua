@@ -70,35 +70,122 @@ NORMDISC="pfifo limit 32"
 
 NATTED='n'
 
-sf=string.format
-exec=os.execute
+-- various shortcuts for commonly used functions
+
+local sf=string.format
+local exec=os.execute
+local popen=io.popen
+local open=io.open
+local getenv=os.getenv 
 
 VO=0x10; VI=0x20; BE=0x30; BK=0x40
 local WQUEUES = { BE, VO, VI, BK }
 
-IFACE=os.getenv("IFACE")
+IFACE=getenv("IFACE")
 if (IFACE == nil) then 
    print("Error: The IFACE environment variable must be set")
    os.exit(-1) 
 end
 
-QMODEL='qfq'
-PREREQS = { 'sch_qfq', 'cls_u32', 'cls_flow' }
+QMODEL="qfq"
+PREREQS = { "sch_qfq", "cls_u32", "cls_flow", "sch_sfq", "sch_red" }
+
+-- we can get more complex later
+
+PREREQS2 = { 
+   ["qfq"] = { "sch_qfq", "cls_u32", "cls_flow" },
+   ["sfq"] = { "sch_sfq", "cls_u32", "cls_flow" },
+   ["red"] = { "sch_qfq", "sch_red", "cls_u32", "cls_flow" },
+   ["ared"] = { "sch_qfq", "sch_red", "cls_u32", "cls_flow" }
+}
+
+
+-- FIXME: Merge multiple tables into one table on value
+
+function merge(...)
+   local t = { }
+   for i,v in pairs(...) do
+      for i,v in pairs(v) do
+	 t[v] = true
+      end
+   end
+   return t
+end
+
+-- slurp a file
+
+function slurpf(file)
+   local f = open(file,"r")
+   if f ~= nil then 
+      local s = f:read("*all")
+      f:close()
+      return s
+   end
+   return nil
+end
+
+
+-- spew output into a command
+
+function spewc(command,s)
+   local f = popen(command,"w")
+   if f ~= nil then
+      local v = f:write(s) 
+      f:close()
+      return v
+   end
+   return nil
+end
+
+-- spew output into a file
+
+function spewf(file,s)
+   local f = open(file,"w")
+   if f ~= nil then
+      local v = f:write(s) 
+      f:close()
+      return v
+   end
+   return nil
+end
+
+
+-- slurp a file into a table
+
+function tslurpf(file)
+   local s = slurpf(file)
+   if s ~= nil then return s:split("\n") end
+   return nil
+end
+
+-- return the output of a command as a big string
+
+function slurpc(command)
+   local f = popen(command,"r")
+   if f ~= nil then 
+      local s = f:read("*all")
+      f:close()
+      return s
+   end
+   return nil
+end
+
+-- return the output of a command as a table
+
+function tslurpc(command)
+   local s = slurpc(command)
+   if s ~= nil then return s:split("\n") end
+   return nil
+end
+
 
 -- Some utility functions
 
 function file_exists(name)
-   local f=io.open(name,"r")
-   if f~=nil then io.close(f) return true else return false end
+   local f=open(name,"r")
+   if f ~= nil then f:close(); return true else return false end
 end
 
--- FIXME: quiet the warnings
-
-function kernel_prereqs(prereqs)
-   for i,v in ipairs(prereqs) do
-      exec(sf("%s %s",INSMOD,v))
-   end
-end
 
 -- can't depend on 'wlan or eth' patterns, so try sysfs
 -- FIXME: This needs to be made smarter and detect other forms
@@ -118,23 +205,15 @@ local function is_openwrt()
    if file_exists("/etc/uci-defaults") then return true else return false end
 end
 
---[ Need to think on this
-local function check_prereq(prereqs) 
-   if is_openwrt() then 
-      for i,v in prereqs do end
-   else
-      for i,v in prereqs do end
-   end
-end
---]
-
 if is_openwrt() then
    INSMOD="/sbin/insmod"
+   LSMOD="/sbin/lsmod"
    ETHTOOL="/usr/sbin/ethtool"
    TC="/usr/sbin/tc"
 else
    INSMOD="/sbin/modprobe"
    ETHTOOL="/sbin/ethtool"
+   LSMOD="/sbin/lsmod"
 end
 
 FORCE_SPEED=0
@@ -142,24 +221,25 @@ FORCE_RING=0
 
 --[ I miss LISP. There's got to be a way to lookup the self name...
 local function defaults(param)
-   if os.getenv(param) ~= nil then return os.getenv(param) else return valueof(param) end
+   if getenv(param) ~= nil then return getenv(param) else return valueof(param) end
 end
 --]
 
 -- Override various defaults with env vars
 
-if os.getenv("TC") ~= nil then TC=os.getenv("TC") end
-if os.getenv("TCARG") ~= nil then TCARG=os.getenv("TCARG") end
-if os.getenv("MDISC") ~= nil then MDISC=os.getenv("MDISC") end
-if os.getenv("BIGDISC") ~= nil then BIGDISC=os.getenv("BIGDISC") end
-if os.getenv("NORMDISC") ~= nil then NORMDISC=os.getenv("NORMDISC") end
-if os.getenv("BINS") ~= nil then BINS=os.getenv("BINS") end
-if os.getenv("MAX_HWQ_BYTES") ~= nil then MAX_HWQ_BYTES=os.getenv("MAX_HWQ_BYTES") end
-if os.getenv("ETHTOOL") ~= nil then ETHTOOL=os.getenv("ETHTOOL") end
-if os.getenv("NATTED") ~= nil then NATTED=os.getenv("NATTED") end
-if os.getenv("QMODEL") ~= nil then QMODEL=os.getenv("QMODEL") end
-if os.getenv("FORCE_SPEED") ~= nil then FORCE_SPEED=os.getenv("FORCE_SPEED") end
-if os.getenv("FORCE_RING") ~= nil then FORCE_RING=os.getenv("FORCE_RING") end
+if getenv("TC") ~= nil then TC=getenv("TC") end
+if getenv("TCARG") ~= nil then TCARG=getenv("TCARG") end
+if getenv("MDISC") ~= nil then MDISC=getenv("MDISC") end
+if getenv("BIGDISC") ~= nil then BIGDISC=getenv("BIGDISC") end
+if getenv("NORMDISC") ~= nil then NORMDISC=getenv("NORMDISC") end
+if getenv("BINS") ~= nil then BINS=getenv("BINS") end
+if getenv("MAX_HWQ_BYTES") ~= nil then MAX_HWQ_BYTES=getenv("MAX_HWQ_BYTES") end
+if getenv("ETHTOOL") ~= nil then ETHTOOL=getenv("ETHTOOL") end
+if getenv("NATTED") ~= nil then NATTED=getenv("NATTED") end
+if getenv("QMODEL") ~= nil then QMODEL=getenv("QMODEL") end
+if getenv("FORCE_SPEED") ~= nil then FORCE_SPEED=getenv("FORCE_SPEED") end
+if getenv("FORCE_RING") ~= nil then FORCE_RING=getenv("FORCE_RING") end
+if getenv("LSMOD") ~= nil then LSMOD=getenv("LSMOD") end
 
 
 -- Maltreat multicast especially. When handed to a load balancing 
@@ -180,29 +260,173 @@ MULTICAST=BINS+1
 
 DEFAULTB=BINS+2
 
+local function ethtool_popen(...)
+   return popen(sf("%s %s",ETHTOOL,sf(...)),"r")
+end
+
 local function ethtool(...)
    exec(sf("%s %s",ETHTOOL,sf(...)))
 end
+
+-- lua doesn't have a split function. Grr.
+
+function string:split(sep)
+   local sep, fields = sep or ":", {}
+   local pattern = string.format("([^%s]+)", sep)
+   self:gsub(pattern, function(c) fields[#fields+1] = c end)
+   return fields
+end
+
+-- return the modules already installed
+
+local function lsmod()
+   local t = { }
+   local k = { }
+   for i,v in pairs(tslurpc(LSMOD)) do
+      k = v:split(" ")
+      if k[1] ~= "Module" then
+	 table.insert(t,k[1])
+      end
+   end
+   return t
+end
+
+-- take a table of modules to insert
+
+local function insmod(modules)
+     for i,v in pairs(modules) do
+	exec(sf("%s %s", INSMOD,v))
+     end
+     return true
+end
+
+-- there must be a more lua-specific way for this
+
+function exists(t,s)
+   for i,v in pairs(t) do
+      if v == s then return true end
+   end
+   return false
+end
+
+-- Return pre-reqs not installed
+
+function prereq_check(prereqs)
+   s = lsmod()
+   local t = { }
+   for i,v in pairs(prereqs) do
+      if exists(s,v) == false then
+	 table.insert(t,v)
+      end
+   end
+   return t
+end
+
+-- install pre-reqs if not installed
+
+function kernel_prereqs(prereqs)
+   return insmod(prereq_check(prereqs))
+end
+
+-- FIXME:
+-- We want to capture the characteristics of
+-- the interface in a table.
+-- So we need to parse the output of ethtool better
+-- ["tx-ring"] = X
+-- ["speed"] = X
+-- etc
+-- return a hash of the properties of the interface
+
+-- terrific, this is hard to parse.
+-- ethtool -g eth0
+
+-- Ring parameters for eth0:
+-- Pre-set maximums:
+-- RX:		4096
+-- RX Mini:	0
+-- RX Jumbo:	0
+-- TX:		4096
+-- Current hardware settings:
+-- RX:		256
+-- RX Mini:	0
+-- RX Jumbo:	0
+-- TX:		64
+
+-- ethtool -g wlan0
+-- Ring parameters for wlan0:
+-- Pre-set maximums:
+-- RX:		0
+-- RX Mini:	0
+-- RX Jumbo:	0
+-- TX:		0
+-- Current hardware settings:
+-- RX:		0
+-- RX Mini:	0
+-- RX Jumbo:	0
+-- TX:		0
+
+-- -k is easier
+-- ethtool -k eth0
+-- Offload parameters for eth0:
+-- rx-checksumming: on
+-- tx-checksumming: on
+-- scatter-gather: on
+-- tcp-segmentation-offload: off
+-- udp-fragmentation-offload: off
+-- generic-segmentation-offload: off
+-- generic-receive-offload: on
+-- large-receive-offload: off
+-- rx-vlan-offload: on
+-- tx-vlan-offload: on
+-- ntuple-filters: off
+-- receive-hashing: off
+
+-- FIXME
+
+-- FIXME need trim or word command
+-- sometimes I really do miss perl
+
+function offloads(iface)
+   local t = { }
+   for i,v in pairs(tslurpc(sf("%s -k %s",ETHTOOL,iface))) do
+      local h = v:split(":")
+      t[h[1]] = h[2] -- fixme, whitespace removal needed, on = true, off=false
+   end
+   return t
+end
+
+-- x = offloads("eth0")
+-- for i,v in pairs(x) do
+--    print("i=",i,"v=",v)
+-- end
+
+function ring_params(iface)
+   local t = { }
+   for i,v in pairs(tslurpc(sf("%s -g %s",ETHTOOL,iface))) do
+      local h = v:split(":")
+      -- FIXME, now we have to parse the default vs the non-default
+      --t[h[1]] = h[2] -- fixme, whitespace removal needed, on = true, off=false
+   end
+   return t
+end
+
+
+function iface_get(iface)
+end
+
 
 -- Under most workloads there doesn't seem to be a need
 -- to reduce txqueuelen. Reducing the bql tx ring to 64
 -- along with a byte limit of 4500 gives a nice symmetry:
 -- 60+ ACKS or 3 big packets.
 
--- Lua has extension libraries to do this better, but
--- I'm trying to stick with the base for now.
 -- return number of hardware queues found
 
 local function bql_setup(iface)
    local c = 0
-   local f = io.open(sf("/sys/class/net/%s/queues/tx-%d/byte_queue_limits/limit_max",iface,c),'w')
-   while f ~= nil do
-      if MAX_HWQ_BYTES > 0 then
-	 f:write(sf("%d",MAX_HWQ_BYTES))
-      end
-      f:close()
+   while spewf(sf("/sys/class/net/%s/queues/tx-%d/byte_queue_limits/limit_max",iface,c),
+	       MAX_HWQ_BYTES) ~= nil do
       c = c + 1
-      f = io.open(sf("/sys/class/net/%s/queues/tx-%d/byte_queue_limits/limit_max",iface,c),'w')
    end
    return c
 end
@@ -210,23 +434,11 @@ end
 -- Maybe better done with ethtool
 
 local function speed_set(iface,speed) 
-   local f = io.open(sf("/sys/class/net/%s/speed",iface),'w')
-   if f ~= nil then
-      local s = f:write(speed)
-      f:close()
-      return s
-   end
-   return nil
+   return spewf(sf("/sys/class/net/%s/speed",iface),speed)
 end
 
 local function speed_get(iface) 
-   local f = io.open(sf("/sys/class/net/%s/speed",iface),'r')
-   if f ~= nil then
-      local s = f:read("*l")
-      f:close()
-      return s
-   end
-   return nil
+   return slurpf(sf("/sys/class/net/%s/speed",iface)) 
 end
 
 -- FIXME: detect speed reliably somehow
@@ -235,8 +447,17 @@ end
 
 -- local speedtotxring = 
 
-local speedtoethtool = { ["100"] = "0x008",
-			 ["10"] = "0x002" }
+-- FIXME: Not clear how to reset to advertising all
+-- Maybe use ethtool speed option?
+-- Think about hashing on this side, too.
+
+-- this had nasty effects on lua's speed
+-- local speedtoethtool = { ["100"] = "0x008",
+-- 			 ["10"] = "0x002",
+-- 		         ["1000"] = "0x020",
+-- 			 ["10000"] = "0x1000",
+-- 			 ["0"] = "0x1000",
+-- 		      }
 
 
 -- TSO does terrible things to the scheduler
@@ -250,7 +471,7 @@ local speedtoethtool = { ["100"] = "0x008",
 local function ethernet_setup(iface)
 -- for testing, limit ethernet to SPEED
    if FORCE_SPEED then
-      ethtool("-s %s advertise 0x008",iface)
+      ethtool(sf("-s %s advertise 0x008",iface))
    end
    if FORCE_RING then
       ethtool(sf("-G %s tx %d",iface,FORCE_RING))
@@ -522,7 +743,7 @@ local function wireless_red()
 end
 
 -- FIXME - mqprio might not be available
--- FIXME - we need to get better about checking module deps
+-- FIXME - rethink multi-queue idea
 
 local function ethernet_qfq(queues)
    c = queues
@@ -530,9 +751,9 @@ local function ethernet_qfq(queues)
    if queues > 1 then
       qa("handle %x root qfq",10)
    else
-   qa("handle %x root qfq",10)
-   model_qfq_subdisc(10)
+      qa("handle %x root qfq",10)
    end
+   model_qfq_subdisc(10)
 end
 
 local function ethernet_sfq(queues)
@@ -580,6 +801,9 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["efq"] = ethernet_efq,
 	       ["efqred"] = ethernet_efqr }
 
+-- couple other models - dsl, wshaper, etc, needed
+-- pingopt and argv processing too
+
 local function wireless(model)
    if WCALLBACKS[model] ~= nil then 
       return WCALLBACKS[model]() 
@@ -601,7 +825,7 @@ itype=interface_type(IFACE)
 if itype == 'wireless' or itype == 'ethernet' then
    kernel_prereqs(PREREQS)
    exec(sf("tc qdisc del dev %s root",IFACE))
-   tc=io.popen(sf("%s %s",TC,TCARG),'w')
+   tc=popen(sf("%s %s",TC,TCARG),'w')
    if itype == 'wireless' then wireless(QMODEL) end
    if itype == 'ethernet' then ethernet(QMODEL) end
 end
