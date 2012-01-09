@@ -377,16 +377,47 @@ local function efqr(parent, handle, speed, flows)
    qa(sf("parent %s handle %x: est 1sec 4sec sfq limit 3000 headdrop flows %d divisor 16384 redflowlimit 100000 min 8000 max 60000 probability 0.20 ecn",parent,handle,speed,flows))
 end
 
+-- Iptables wrappers that we need due to lack of filters
+-- Maybe use a DEBLOAT chain. It would be good to have a universal number
+-- to reduce the number of match rules
+-- iptables -t mangle -o iface -I POSTROUTING -m multicast ! unicast --classify 1:1
+
+local function iptables_probe(iface,rule)
+end
+
+local function iptables_remove(iface,rule)
+end
+
+local function iptables_insert(iface,rule)
+end
+
 -- Basic SFQ on wireless
 -- FIXME: We must get ALL multicast out of the other queues
 -- and into the VO queue. Always. Somehow. 
+-- It also makes sense to do EF into the VO queue
+-- and match the default behavior inside of the 
+-- MAC80211 code for scheduling purposes
+
+local function wireless_filters()
+-- FIXME: We need filters to use the various queues
+-- The only way to get them is to use iptables presently
+end
+
+local function wireless_setup(queuetype)
+   qa("handle 1 root mq")
+   qa("parent 1:1 handle %x %s",VO, queuetype)
+   qa("parent 1:2 handle %x %s",VI, queuetype)
+   qa("parent 1:3 handle %x %s",BE, queuetype)
+   qa("parent 1:4 handle %x %s",BK, queuetype)
+   wireless_filters()
+end
+
+
+-- Various models
+
 
 local function wireless_sfq()
-   qa("handle 1 root mq")
-   qa("parent 1:1 handle %x sfq",VO)
-   qa("parent 1:2 handle %x sfq",VI)
-   qa("parent 1:3 handle %x sfq",BE)
-   qa("parent 1:4 handle %x sfq",BK)
+   wireless_setup("sfq")
 end
 
 -- erics sfq and erics sfqred with 
@@ -399,6 +430,7 @@ local function wireless_efq()
    efq("1:2",VI,150,20)
    efq("1:3",BE,150,1000)
    efq("1:4",BK,50,10)
+   wireless_filters()
 end
 
 local function wireless_efqr()
@@ -407,13 +439,37 @@ local function wireless_efqr()
    efqr("1:2",VI,100,20)
    efqr("1:3",BE,150,1000)
    efqr("1:4",BK,50,10)
+   wireless_filters()
 end
 
 -- FIXME: add HTB rate limiter support for a hm gateway
 -- What we want are various models expressed object orientedly
 -- so we can tie them together eventually
+-- This is not that. We ARE trying to get to where the numbering
+-- schemes are consistent enough to tie everything together
+-- sanely...
 
 local function model_qfq_subdisc(base)
+   cb(base,MULTICAST,MDISC)
+   cb(base,DEFAULTB,NORMDISC)
+   fa_defb(base)
+   fa_mcast(base); 
+   q_bins(base);
+   fa_bins(base); 
+end
+
+-- FIXME: Finish this up
+
+local function model_qfq_ared(base)
+   cb(base,MULTICAST,MDISC)
+   cb(base,DEFAULTB,NORMDISC)
+   fa_defb(base)
+   fa_mcast(base); 
+   q_bins(base);
+   fa_bins(base); 
+end
+
+local function model_qfq_red(base)
    cb(base,MULTICAST,MDISC)
    cb(base,DEFAULTB,NORMDISC)
    fa_defb(base)
@@ -429,17 +485,76 @@ end
 -- Wireless devices are multi-queued - BUT the hardware
 -- enforces differences in behavior vs the queues
 -- (actually hostapd does that)
+-- FIXME: get a grip on lua iterators
 
 local function wireless_qfq()
-   qa("handle 1 root mq")
-   qa("parent 1:1 handle %x qfq",VO)
-   qa("parent 1:2 handle %x qfq",VI)
-   qa("parent 1:3 handle %x qfq",BE)
-   qa("parent 1:4 handle %x qfq",BK)
-   
+   wireless_setup("qfq")
    for i,v in ipairs(WQUEUES) do
       model_qfq_subdisc(v)
    end
+end
+
+local function wireless_qfqr()
+   wireless_setup("qfq")
+   for i,v in ipairs(WQUEUES) do
+      model_qfq_ared(v)
+   end
+end
+
+-- FIXME: just stubs for now
+
+local function wireless_ared()
+   qa("handle 1 root mq")   
+   for i,v in ipairs(WQUEUES) do
+      model_qfq_ared(v)
+   end
+   wireless_filters()
+end
+
+-- FIXME: just stubs for now
+
+local function wireless_red()
+   qa("handle 1 root mq")
+   for i,v in ipairs(WQUEUES) do
+      model_qfq_red(v)
+   end
+   wireless_filters()
+end
+
+-- FIXME - mqprio might not be available
+-- FIXME - we need to get better about checking module deps
+
+local function ethernet_qfq(queues)
+   c = queues
+--   for i=0,c do
+   if queues > 1 then
+      qa("handle %x root qfq",10)
+   else
+   qa("handle %x root qfq",10)
+   model_qfq_subdisc(10)
+   end
+end
+
+local function ethernet_sfq(queues)
+	 qa("handle %x root sfq",10)
+end
+
+local function ethernet_efq(queues)
+	 qa("handle %x root sfq",10)
+end
+
+local function ethernet_efqr(queues)
+	 qa("handle %x root sfq",10)
+end
+
+-- FIXME: just stubs for now
+
+local function ethernet_ared(queues)
+	 qa("handle %x root sfq",10)
+end
+
+local function ethernet_red(queues)
+	 qa("handle %x root sfq",10)
 end
 
 
@@ -450,35 +565,33 @@ end
 -- on top of this
 
 WCALLBACKS = { ["qfq"] = wireless_qfq, 
+	       ["qfqred"] = wireless_qfqr,
+	       ["red"] = wireless_red,
+	       ["ared"] = wireless_ared,
 	       ["sfq"] = wireless_sfq,
 	       ["efq"] = wireless_efq,
 	       ["efqred"] = wireless_efqr }
 
+ECALLBACKS = { ["qfq"] = ethernet_qfq, 
+	       ["qfqred"] = ethernet_qfqr,
+	       ["red"] = ethernet_red,
+	       ["ared"] = ethernet_ared,
+	       ["sfq"] = ethernet_sfq,
+	       ["efq"] = ethernet_efq,
+	       ["efqred"] = ethernet_efqr }
+
 local function wireless(model)
-   --   if WCALLBACKS[model] ~= nil then return WCALLBACKS[model]() end
-	if model == 'sfq' then
-		wireless_sfq()
-	elseif model == 'qfq' then
-		wireless_qfq()
-	elseif model == 'sfqred' then
-		wireless_efqr()
-	end
+   if WCALLBACKS[model] ~= nil then 
+      return WCALLBACKS[model]() 
+   end
+   return nil
 end
 
 local function ethernet(model)
-   local queues = ethernet_setup(IFACE)
-   if queues == 1 then
-      if model == "qfq" then
-	 qa("handle %x root qfq",10)
-	 model_qfq_subdisc(10)
-      elseif model == "sfq" then
-	 qa("handle %x root sfq",10)
-      elseif model == "sfqred" then
-	 qa("handle %x root sfq",10)
-      end
-   elseif queues > 1 then
-      print("do something intelligent")
+   if ECALLBACKS[model] ~= nil then 
+      return ECALLBACKS[model](ethernet_setup(IFACE)) 
    end
+   return nil
 end
 
 -- FIXME - do something intelligent when faced with a bridge or vlan
