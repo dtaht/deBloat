@@ -1,5 +1,12 @@
 #!/usr/bin/lua
 
+-- NOTE:
+-- THIS SCRIPT IS BEING RETIRED in favor of 'debloat'
+-- IT STILL DOES QFQ AND SFQ RIGHT, but was getting
+-- OVERCOMPLEX as I tried to add other qdiscs.
+-- IT WILL BE REMOVED AFTER 'debloat'
+-- CLEANS UP
+
 -- Use of the QFQ qdisc for ethernet and wireless
 -- This script expects to be run in /etc/network/if-pre-up.d
 -- To run it manually, do a IFACE=yournetworkcard ./this_script
