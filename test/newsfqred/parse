@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# nl to number the lines, but it want to add formatting
+# nl wtf2 | awk '{print $1,"\t",$2}'
+cat fpinglog.txt | sed -e 's/ /\n/g' | nl | awk '{ print $1,"\t",$2}' > fpingflows.data
+cat fpinglog.txt | sed -e 's/ /\n/g' > fpingsample1.data
+
