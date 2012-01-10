@@ -634,7 +634,7 @@ local function efq(parent, handle, speed, flows)
 end
 
 local function efqr(parent, handle, speed, flows)
-   qa(sf("parent %s handle %x: est 1sec 4sec sfq limit 3000 headdrop flows %d divisor 16384 redflowlimit 100000 min 8000 max 60000 probability 0.20 ecn",parent,handle,flows))
+   qa(sf("parent %s handle %x: est 1sec 4sec sfq limit 300 headdrop flows %d divisor 16384 redflowlimit 40000 min 4500 max 18000 probability 0.20 ecn",parent,handle,flows))
 end
 
 function iptables4(...)
@@ -870,7 +870,7 @@ end
 
 local function ethernet_efqr(queues)
 -- FIXME, we can do sane things with speed here
-	 qa("root handle %x: est 1sec 4sec sfq limit 300 headdrop flows %d divisor 16384 redflowlimit 100000 min 8000 max 60000 probability 0.20 ecn",10,150)
+	 qa("root handle %x: est 1sec 4sec sfq limit 300 headdrop flows %d divisor 16384 redflowlimit 70000 min 8000 max 60000 probability 0.20 ecn",10,150)
 end
 
 -- FIXME: just stubs for now

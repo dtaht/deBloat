@@ -1,0 +1,27 @@
+* Summary
+
+This was 50 iperf instances, running for 60 seconds
+against a fping -b220 -i 10 -p 10 -C 10000
+- in other words a fairly voip-like sample.
+
+I pulled out the 'start of one test' to look
+at latency under that load and plotted that
+separately as a CDR. Which was nice. Still
+a lot of jitter, but...
+
+* Other observations
+
+During this test (under VERY good conditions)
+
+Typically saw 104-110Mbytes/sec and very even
+performance from 50 iperfs.
+
+No iperf hangs, either.
+
+High quality streams
+
+And lastly... I did this test over ipv6.
+
+* TODO jitter
+* TODO Gather up reference against this kernel combo
+(I did a similar test over ipv4 but not on this kernel)
