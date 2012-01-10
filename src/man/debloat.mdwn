@@ -1,0 +1,56 @@
+-- TC="/bin/cat"
+-- TC="/usr/bin/less"
+-- TCARG=" "
+-- QFQ can handle up to 32k bins
+-- whether you are willing to wait for them
+-- to be generated is a better question
+-- how this interacts with bittorrent etc
+-- is also a good question. 512 is 4x
+-- as many bins as SFQ, sooo....
+
+-- (I have tested as many as 2048 bins)
+-- Ran out of kernel memory at 32000
+
+-- Byte Queue Limits is supposed to have a 
+-- rate limiter that works. It doesn't, quite.
+-- At a hundred megabit, on my hardware I get
+
+-- (with sfq on)
+-- BQL = auto ~ 2.16 ms RTT for ping
+-- BQL = 4500 ~ 1.2 ms RTT for ping
+-- BQL = 3000 ~ .67 ms RTT for ping
+-- BQL = 1500 ~ .76 ms RTT for ping
+-- With a baseline of .33 ms unloaded
+-- And at this level we are no doubt
+-- interacting with other optimizations
+-- on the stack...
+
+-- I have tried pfifo_drop_head and RED here.
+-- both had bugs until recently. And linux RED,
+-- being byte oriented, is just not good.
+-- pfifo_drop_head was 'interesting' and I
+-- may return to it.
+
+-- Obviously calculating a sane per-queue
+-- packet limit is an issue, too. 
+-- iw10 requires a minimum of 10, and 
+-- more likely 12 (fin, close)... so...
+-- arbitrarily double that, wave hands.
+-- I almost never see packet drop with
+-- 24, which is far, far better than 1000.
+-- might need to be larger on gigE+
+
+-- Maltreat multicast especially. When handed to a load balancing 
+-- filter based on IPs, multicast addresses are all over the map.
+-- It would be trivial to do a DOS with this multi-bin setup
+-- So we toss all multicast into a single bin all it's own.
+
+
+-- to put packets until all the filters and bins are setup.
+
+
+-- Under most workloads there doesn't seem to be a need
+-- to reduce txqueuelen. Reducing the bql tx ring to 64
+-- along with a byte limit of 4500 gives a nice symmetry:
+-- 60+ ACKS or 3 big packets.
+

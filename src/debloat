@@ -1,0 +1,940 @@
+#!/usr/bin/lua
+
+-- Use of various qdiscs for ethernet and wireless
+-- This script expects to be run in /etc/network/if-pre-up.d
+-- To run it manually, do a IFACE=yournetworkcard ./debloat
+-- For NATTED interfaces, use a NAT=y for a better filter
+-- To select QFQ use QMODEL=qfq 
+
+-- debloat currently requires a new version of tc
+-- Build a version and stick it somewhere and change
+-- the TC variable to suit. These are the possible 
+-- parameters that can be changed via environment variables.
+
+params = { "MDISC", "BIGDISC", "NORMDISC", "BINS", "MAX_HWQ_BYTES", 
+	   "QMODEL", "FORCE_SPEED", "FORCE_RING", "LSMOD", 
+	   "UPLINK", "DOWNLINK", "IFACE", "SPEED", 
+	   "NAT", "NAT64", "CLAMP_MSS", "SYN_FLOOD", "MTU",
+	   "TC", "TCARG", "ETHTOOL", "INSMOD", "LSMOD", "IPTABLES", "IP6TABLES",
+	   "PINGOPT" }
+
+-- Useful defaults
+
+env = { ["TC"] = "/sbin/tc", 
+	["TCARG"] = "-b", 
+	["INSMOD"] = "/sbin/modprobe",
+        ["ETHTOOL"] = "/sbin/ethtool", 
+	["LSMOD"] = "/sbin/lsmod",
+	["IPTABLES"] = "/sbin/iptables",
+	["IP6TABLES"] = "/sbin/ip6tables",
+	["MDISC"] = "pfifo_head_drop limit 32",
+	["BIGDISC"] =  "pfifo_head_drop limit 32",
+	["NORMDISC"] = "pfifo_head_drop limit 32",
+	["BINS"] = 2048,
+	["QMODEL"] = "sfq",
+	["MAX_HWQ_BYTES"] = 3000
+     }
+
+-- various shortcuts for commonly used functions
+
+local sf=string.format
+local exec=os.execute
+local popen=io.popen
+local open=io.open
+
+VO=0x10; VI=0x20; BE=0x30; BK=0x40
+local WQUEUES = { BE, VO, VI, BK }
+
+local function usage(s) o=[[ 
+The debloat tool aims for minimal latency (particularly under load) on
+the network.
+
+There are various forms of traffic shapers and tools in here because
+this is an unsolved problem! Most of the known techniques are in here,
+however, and the results can be quite remarkable.
+ 
+This script expects to be run in /etc/network/if-pre-up.d
+
+To run it manually, do a: 
+
+IFACE=yournetworkcard ./this_script
+
+For NATTED interfaces, use a NAT=y for a better filter.
+
+There are many environment variables and at some point will be a conf
+file.
+
+This script can be run on both debian and openwrt.
+
+Usage of QFQ and the advanced SFQ options currently requires a new
+version of iproute2 and a Linux 3.3 kernel and some patches.
+
+Build a version and stick it somewhere and change TC to suit.
+
+Also, if you are interested in seeing the rules being generated
+
+TC="/usr/bin/less" TCARG=" " 
+
+is helpful.
+
+Some general overall design notes:
+
+This started out life as a shell script to excercise qfq,
+Now it does a lot more than that and is getting crufty. 
+
+SFQ is now the default. QFQ is too buggy prior to 3.3 to use.
+
+* QFQ can handle up to 32k bins. However more than 8192 is no good.
+
+Whether you are willing to wait for them to be generated is a better
+question.  How this interacts with bittorrent etc is also a good
+question. 512 is 4x as many bins as SFQ.
+
+I have tested as many as 2048 bins, only to run out of kernel memory
+at 32000.
+
+* Byte Queue Limits is supposed to have a rate limiter that works. It
+is not very effective at less than 100Mbit.
+
+A per queue limit of 2-3 large packets appears to be the best
+compromise at 100Mbit and below.
+
+* Various sub-qdiscs
+
+I have tried pfifo_drop_head and RED here.  Both had bugs until
+3.3. And linux RED, being byte oriented, is often not good.
+pfifo_drop_head was 'interesting' and I may return to it.
+
+Obviously calculating a sane per-queue packet limit is an issue, too.
+iw10 requires a minimum of 10, and more likely 12 (fin, close) so...
+We arbitrarily double that, wave hands.  I almost never see packet
+drop with 24, which is far, far better than 1000.  might need to be
+larger on gigE+. Might be wrong headed entirely.
+
+* Multicast
+
+We maltreat multicast especially. When handed to a load balancing
+filter based on IPs, multicast addresses are all over the map.  It
+would be trivial to do a DOS with this multi-bin setup So we toss all
+multicast into a single bin whenever possible. This is suboptimal,
+also.
+
+* Default Bins
+
+You can do tricks with the DEFAULTB concept, creating a filter to
+optimize for ping, for example, which makes tests reproducable Another
+example would be to set aside bins for voip or dns, etc. Still, it is
+saner to just let the filter do all the work of finding a decent bin
+
+The only purpose for DEFAULTB at the moment is to have a safe place to
+put packets until all the filters and bins are setup.
+
+* Other options
+
+There are many other environment variables that can be set. Most
+notably - the QMODEL has various forms of AQM/FQ/shaper available.
+
+Available QMODELS are qfq, sfq, redsfq, efq and various combinations
+thereof.
+
+They work on either ethernet or wireless and try to deal with
+the problems of each.
+
+Usage of QFQ and the advanced SFQ options currently requires a new
+version of iproute2 and a Linux 3.3 kernel and some patches.
+
+A byte Queue limit enabled device driver is required for ethernet.
+
+In all cases a Linux 3.3 or later kernel is required for best results.
+
+]]
+
+print(o)
+-- print("Available Shaper Models Are:")
+-- for i,v in pairs (ECALLBACKS) do
+--   print(i)
+-- end
+print(s)
+os.exit(-1)
+end
+
+
+function file_exists(name)
+   local f=open(name,"r")
+   if f ~= nil then f:close(); return true else return false end
+end
+
+local function is_openwrt() 
+   if file_exists("/etc/uci-defaults") then return true else return false end
+end
+
+-- Override various defaults with env vars
+
+if is_openwrt() then 
+   env.INSMOD = "/sbin/insmod"
+   env.ETHTOOL = "/usr/sbin/ethtool"
+end
+
+-- pull params from conf file
+
+local function getconf()
+end
+
+-- From the possible parameters in t, override o
+
+local function getenvs(t,o)
+   for i,v in pairs(t) do
+      local s = os.getenv(v)
+      if s ~= nil then o[v] = s end
+   end
+   return o
+end
+
+env = getenvs(params, env)
+
+if (env["IFACE"] == nil) then 
+   usage("Error: The IFACE environment variable must be set")
+end
+
+IFACE=env.IFACE
+QMODEL=env.QMODEL
+BINS=env.BINS
+MULTICAST=BINS+1
+DEFAULTB=BINS+2
+
+PREREQS = { "sch_qfq", "cls_u32", "cls_flow", "sch_sfq", "sch_red" }
+
+-- we can get more complex later
+
+PREREQS2 = { 
+   ["qfq"] = { "sch_qfq", "cls_u32", "cls_flow" },
+   ["sfq"] = { "sch_sfq", "cls_u32", "cls_flow" },
+   ["red"] = { "sch_qfq", "sch_red", "cls_u32", "cls_flow" },
+   ["ared"] = { "sch_qfq", "sch_red", "cls_u32", "cls_flow" }
+}
+
+-- FIXME: Merge multiple tables into one table on values in first
+-- return table
+
+function merge(...)
+   local t = { }
+   for i,v in pairs(...) do
+      for i,v in pairs(v) do
+	 t[v] = true
+      end
+   end
+   return t
+end
+
+-- slurp a file
+
+function slurpf(file)
+   local f = open(file,"r")
+   if f ~= nil then 
+      local s = f:read("*all")
+      f:close()
+      return s
+   end
+   return nil
+end
+
+-- spew output into a command
+
+function spewc(command,s)
+   local f = popen(command,"w")
+   if f ~= nil then
+      local v = f:write(s) 
+      f:close()
+      return v
+   end
+   return nil
+end
+
+-- spew output into a file
+
+function spewf(file,s)
+   local f = open(file,"w")
+   if f ~= nil then
+      local v = f:write(s) 
+      f:close()
+      return v
+   end
+   return nil
+end
+
+-- slurp a file into a table
+
+function tslurpf(file)
+   local s = slurpf(file)
+   if s ~= nil then return s:split("\n") end
+   return nil
+end
+
+-- return the output of a command as a big string
+
+function slurpc(command)
+   local f = popen(command,"r")
+   if f ~= nil then 
+      local s = f:read("*all")
+      f:close()
+      return s
+   end
+   return nil
+end
+
+-- return the output of a command as a table
+
+function tslurpc(command)
+   local s = slurpc(command)
+   if s ~= nil then return s:split("\n") end
+   return nil
+end
+
+-- Some utility functions
+
+-- can't depend on 'wlan or eth' patterns, so try sysfs
+-- FIXME: This needs to be made smarter and detect other forms
+-- of tunnel.
+
+function interface_type(iface)
+   if iface == 'lo'           then return('localhost') end
+   if iface:sub(1,3) == 'ifb' then return('ifb') end
+   if iface:find('%.') ~= nil then return('vlan') end
+   if iface:sub(1,3) == 'gre' then return('tunnel') end
+   if iface:sub(1,2) == 'br'  then return('bridge') end
+   if file_exists(sf("/sys/class/net/%s/phy80211/name",iface)) then return ('wireless') end
+return ('ethernet')
+end
+
+local function ethtool_popen(...)
+   return popen(sf("%s %s",env.ETHTOOL,sf(...)),"r")
+end
+
+local function ethtool(...)
+   exec(sf("%s %s",env.ETHTOOL,sf(...)))
+end
+
+-- lua doesn't have a split function. Grr.
+
+function string:split(sep)
+   local sep, fields = sep or ":", {}
+   local pattern = string.format("([^%s]+)", sep)
+   self:gsub(pattern, function(c) fields[#fields+1] = c end)
+   return fields
+end
+
+-- return the modules already installed
+
+local function lsmod()
+   local t = { }
+   local k = { }
+   for i,v in pairs(tslurpc(env.LSMOD)) do
+      k = v:split(" ")
+      if k[1] ~= "Module" then
+	 table.insert(t,k[1])
+      end
+   end
+   return t
+end
+
+-- take a table of modules to insert
+
+local function insmod(modules)
+     for i,v in pairs(modules) do
+	exec(sf("%s %s",env.INSMOD,v))
+     end
+     return true
+end
+
+-- there must be a more lua-specific way for this
+
+function exists(t,s)
+   for i,v in pairs(t) do
+      if v == s then return true end
+   end
+   return false
+end
+
+-- Return pre-reqs not installed
+
+function prereq_check(prereqs)
+   s = lsmod()
+   local t = { }
+   for i,v in pairs(prereqs) do
+      if exists(s,v) == false then
+	 table.insert(t,v)
+      end
+   end
+   return t
+end
+
+-- install pre-reqs if not installed
+
+function kernel_prereqs(prereqs)
+   return insmod(prereq_check(prereqs))
+end
+
+-- FIXME:
+-- We want to capture the characteristics of
+-- the interface in a table.
+-- So we need to parse the output of ethtool better
+-- ["tx-ring"] = X
+-- ["speed"] = X
+-- etc
+-- return a hash of the properties of the interface
+
+-- terrific, this is hard to parse.
+-- ethtool -g eth0
+
+-- Ring parameters for eth0:
+-- Pre-set maximums:
+-- RX:		4096
+-- RX Mini:	0
+-- RX Jumbo:	0
+-- TX:		4096
+-- Current hardware settings:
+-- RX:		256
+-- RX Mini:	0
+-- RX Jumbo:	0
+-- TX:		64
+
+-- ethtool -g wlan0
+-- Ring parameters for wlan0:
+-- Pre-set maximums:
+-- RX:		0
+-- RX Mini:	0
+-- RX Jumbo:	0
+-- TX:		0
+-- Current hardware settings:
+-- RX:		0
+-- RX Mini:	0
+-- RX Jumbo:	0
+-- TX:		0
+
+-- -k is easier
+-- ethtool -k eth0
+-- Offload parameters for eth0:
+-- rx-checksumming: on
+-- tx-checksumming: on
+-- scatter-gather: on
+-- tcp-segmentation-offload: off
+-- udp-fragmentation-offload: off
+-- generic-segmentation-offload: off
+-- generic-receive-offload: on
+-- large-receive-offload: off
+-- rx-vlan-offload: on
+-- tx-vlan-offload: on
+-- ntuple-filters: off
+-- receive-hashing: off
+
+-- FIXME
+
+-- FIXME need trim or word command
+-- sometimes I really do miss perl
+
+function offloads(iface)
+   local t = { }
+   for i,v in pairs(tslurpc(sf("%s -k %s",env.ETHTOOL,iface))) do
+      local h = v:split(":")
+      t[h[1]] = h[2] -- fixme, whitespace removal needed, on = true, off=false
+   end
+   return t
+end
+
+-- x = offloads("eth0")
+-- for i,v in pairs(x) do
+--    print("i=",i,"v=",v)
+-- end
+
+function ring_params(iface)
+   local t = { }
+   for i,v in pairs(tslurpc(sf("%s -g %s",env.ETHTOOL,iface))) do
+      local h = v:split(":")
+      -- FIXME, now we have to parse the default vs the non-default
+      --t[h[1]] = h[2] -- fixme, whitespace removal needed, on = true, off=false
+   end
+   return t
+end
+
+
+function iface_get(iface)
+end
+
+-- return number of hardware queues found
+
+local function bql_setup(iface)
+   local c = 0
+   while spewf(sf("/sys/class/net/%s/queues/tx-%d/byte_queue_limits/limit_max",iface,c),
+	       env.MAX_HWQ_BYTES) ~= nil do
+      c = c + 1
+   end
+   return c
+end
+
+-- Maybe better done with ethtool
+
+local function speed_set(iface,speed) 
+   return spewf(sf("/sys/class/net/%s/speed",iface),speed)
+end
+
+local function speed_get(iface) 
+   return slurpf(sf("/sys/class/net/%s/speed",iface)) 
+end
+
+-- FIXME: detect speed reliably somehow
+-- wireless is hard... wired may vary
+-- when going up or down
+
+-- local speedtotxring = 
+
+-- FIXME: Not clear how to reset to advertising all
+-- Maybe use ethtool speed option?
+-- Think about hashing on this side, too.
+
+-- this had nasty effects on lua's speed
+-- local speedtoethtool = { ["100"] = "0x008",
+-- 			 ["10"] = "0x002",
+-- 		         ["1000"] = "0x020",
+-- 			 ["10000"] = "0x1000",
+-- 			 ["0"] = "0x1000",
+-- 		      }
+
+
+-- TSO does terrible things to the scheduler
+-- GSO does as well
+-- UFO is not a feature of most devices
+
+-- In the long run I think we want to disable
+-- TSO and GSO entirely below 100Mbit. I'd
+-- argue for same for gigE, too, for desktops
+
+local function ethernet_setup(iface)
+-- for testing, limit ethernet to SPEED
+   if env.FORCE_SPEED then
+      ethtool(sf("-s %s advertise 0x008",iface))
+   end
+   if env.FORCE_RING then
+      ethtool(sf("-G %s tx %d",iface,env.FORCE_RING))
+   end
+   local queues = bql_setup(iface)
+   ethtool("-K %s gso off",iface)
+   ethtool("-K %s tso off",iface)
+   ethtool("-K %s ufo off",iface)
+   return queues
+end
+
+-- Some TC helpers
+
+-- TC tends to be repetitive and hard to read
+-- So this shortens things considerably by doing
+-- the "{class,qdisc,filter} add dev %s" for us
+-- Constructing something that was ** reversible **
+-- and cleaner to express would be better that this
+
+local castring=sf("class add dev %s ", env.IFACE)
+local fastring=sf("filter add dev %s ",env.IFACE)
+local qastring=sf("qdisc add dev %s ", env.IFACE)
+
+local function ca(...) 
+   return tc:write(castring,sf(...),"\n") 
+end
+
+local function fa(...) 
+   return tc:write(fastring,sf(...),"\n") 
+end
+
+local function qa(...) 
+   return tc:write(qastring,sf(...),"\n") 
+end
+
+-- QFQ: Create a bin attached to the parent class
+
+local function cb(base,bin,disc)
+   ca("parent %x classid %x:%x qfq",base,base,bin)
+   qa("parent %x:%x %s",base,bin,disc)
+end
+
+-- FIXME: It would be nice to have a cleaner way to match all multicast
+
+local function fa_mcast(parent) 
+   fa("protocol ip parent %x: prio 5 u32 match u8 0x01 0x01 at -14 flowid %x:%x",parent,parent,MULTICAST)
+   fa("protocol ipv6 parent %x: prio 6 u32 match u8 0x01 0x01 at -14 flowid %x:%x",parent,parent,MULTICAST)
+   fa("protocol arp parent %x: prio 7 u32 match u8 0x01 0x01 at -14 flowid %x:%x",parent,parent,MULTICAST)
+end
+
+local function fa_defb(parent) 
+   fa("protocol all parent %x: prio 999 u32 match ip protocol 0 0x00 flowid %x:%x",parent,parent,DEFAULTB)
+end
+
+-- FIXME: This needs a correct hash for natted sources when NAT=y and ipv6
+
+local function fa_bins(parent)
+if env.NAT then
+   fa("protocol ipv6 parent %x: handle 3 prio 94 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
+   fa("protocol all parent %x: handle 3 prio 97 flow hash keys proto-dst,nfct-src divisor %d",parent,BINS)
+else
+   fa("protocol all parent %x: handle 3 prio 97 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
+end
+-- At one point I was trying to handle ipv6 separately
+-- fa("protocol ipv6 parent %x: handle 4 prio 98 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
+end
+
+local function q_bins(parent)
+   for i=0,env.BINS
+   do
+      ca("parent %x: classid %x:%x qfq",parent,parent,i) 
+      qa("parent %x:%x %s",parent,i,env.BIGDISC)
+   end
+end
+
+-- We can do simple per-stream load balancing across multiple hardware
+-- queues thusly. This assumes your IPv6 isn't natted....
+
+local function mqprio_bins(parent,queues)
+if env.NAT then
+   fa("protocol ipv6 parent %x: handle 3 prio 94 flow hash keys proto-dst,rxhash divisor %d",parent,queues)
+   fa("protocol all parent %x: handle 3 prio 97 flow hash keys proto-dst,nfct-src divisor %d",parent,queues)
+else
+   fa("protocol all parent %x: handle 3 prio 97 flow hash keys proto-dst,rxhash divisor %d",parent,queues)
+end
+-- At one point I was trying to handle ipv6 separately
+-- fa("protocol ipv6 parent %x: handle 4 prio 98 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
+end
+
+-- Eric's Enhanced SFQ 
+
+-- FIXME: hard coded for 200Mbit
+-- I'm going to argue that depth, flows, speed all need to be
+-- done via something kleinrock-like. The problem is that 
+-- we don't know the delay without hitting the next hop
+-- And we can't get the next hop until after the interface is
+-- up. And even then we can only measure RTT, which is off
+-- by a factor of three on the two different systems I've looked at
+
+-- FIXME: I don't think I should be measuring speed in megabits
+-- Eric's original code had a mtu of 40000, which I assume is needed for TSO/GSO to work.
+-- These quantums are way too large for lower speeds
+
+local function htb_sfq(speed,flows)
+   qa("root handle 1: est 1sec 8sec htb default 1")
+   ca("parent 1: classid 1:1 est 1sec 8sec htb rate 200Mbit mtu 1500 quantum 80000")
+   qa("parent 1:1 handle 10: est 1sec 8sec sfq limit 2000 depth 10 headdrop flows 1000 divisor 16384")
+end
+
+local function htb_sfq_red(speed,flows)
+   qa("root handle 1: est 1sec 8sec htb default 1")
+   ca("parent 1: classid 1:1 est 1sec 8sec htb rate 200Mbit mtu 1500 quantum 80000")
+   qa("parent 1:1 handle 10: est 1sec 4sec sfq limit 3000 headdrop flows 512 divisor 16384 redflowlimit 100000 min 8000 max 60000 probability 0.20 ecn")
+end
+
+local function efq(parent, handle, speed, flows)
+   qa(sf("parent %s handle %x: est 1sec 8sec sfq limit 2000 depth 24 headdrop flows %d divisor 16384",
+	 parent,handle,flows))
+end
+
+local function efqr(parent, handle, speed, flows)
+   qa(sf("parent %s handle %x: est 1sec 4sec sfq limit 3000 headdrop flows %d divisor 16384 redflowlimit 100000 min 8000 max 60000 probability 0.20 ecn",parent,handle,speed,flows))
+end
+
+function iptables4(...)
+   exec(sf("iptables %s",...))
+end
+
+function iptables6(...)
+   exec(sf("ip6tables %s",...))
+end
+
+function iptables(...)
+   iptables4(...)
+   iptables6(...)
+end
+
+function recreate_filter(t)
+   assert(t.chain, "ERROR: chain parameter is missing!")
+   assert(t.table, "ERROR: table parameter is missing!")
+   iptables(sf("-t %s -F %s", t.table, t.chain))
+   iptables(sf("-t %s -X %s", t.table,t.chain))
+   iptables(sf("-t %s -N %s", t.table,t.chain))
+end
+
+local function mcast_classify(chain,class) 
+   iptables(sf("-t mangle -A %s -m pkttype ! --pkt-type unicast -j CLASSIFY --set-class %s",chain,class))
+end
+
+local ds = { ["BE"]=0, ["AF11"]=10, ["AF12"]=12, ["AF13"]=14,
+	     ["AF21"]=18, ["AF22"]=20, ["AF23"]=22, ["AF31"]=26,
+	     ["AF32"]=28,["AF33"]=30, ["AF41"]=34, ["AF42"]=36,
+	     ["AF43"]=38, ["EF"]=46, ["CS1"]=8, ["CS2"]=16,
+	     ["CS3"]=24, ["CS4"]=32, ["CS5"]=40, ["CS6"]=48,
+	     ["CS7"]=56, ["BOFH"]=4, ["ANT"]=42, ["LB"]=63, ["P2P"]=9
+	     }
+
+-- No matter what I try I get this wrong. You would think 1:1,2,3,4
+-- was the right thing. Nope.  
+-- So 1:1 doesn't work. 1:10 doesn't work. Trying 1:101 etc because
+-- that's a magic value and....
+-- And IPv6 multicast is never matched.
+
+local function mac80211e() 
+
+   local t = "-t mangle -A W80211e -m dscp --dscp %d -j CLASSIFY --set-class 0:%d -m comment --comment '%s'"
+   local function f(...)
+      iptables(sf(t,...))
+   end
+   
+   recreate_filter({table="mangle",chain="W80211e"})
+   
+   iptables("-t mangle -A W80211e -j CLASSIFY --set-class 0:103 -m comment --comment 'Reclassify BE'")
+   f(ds.EF,  106,'Voice (EF)')
+   f(ds.CS6, 106,'Critical (VO)')
+   f(ds.ANT, 105,'Ants(VI)')
+   f(ds.BOFH,105,'Typing (VI)')
+   f(ds.AF41,105,'Net Radio(VI)')
+   f(ds.CS3, 105,'Video (VI)')
+   f(ds.CS1, 101,'Background (BK)')
+   f(ds.CS5, 101,'General Stuff (BK)')
+   f(ds.P2P, 101,'P2P (BK)')
+   f(ds.CS2, 101,'Background (BK)')
+   f(ds.AF33,101,'Background (AF33)')
+   mcast_classify("W80211e","0:103")
+end
+
+-- Iptables wrappers that we need due to lack of filters. Maybe use a
+-- DEBLOAT chain. It would be good to have a universal number to
+-- reduce the number of match rules iptables -t mangle -o iface -I
+-- POSTROUTING -m multicast ! unicast --classify 1:1
+
+local function iptables_probe(iface,rule)
+end
+
+local function iptables_remove(iface,rule)
+end
+
+local function iptables_insert(iface,rule)
+   iptables(sf("-t mangle -o %s -A POSTROUTING -j %s",iface,rule))
+end
+
+-- Basic SFQ on wireless
+
+-- FIXME: We must get ALL multicast out of the other queues
+-- and into the VO queue. Always. Somehow. 
+
+-- It also makes sense to do EF into the VO queue and match the
+-- default behavior inside of the MAC80211 code for scheduling
+-- purposes.
+
+local function wireless_filters()
+-- FIXME: We need filters to use the various queues
+-- The only way to get them is to use iptables presently
+-- and even that's not working
+end
+
+local function wireless_setup(queuetype)
+   qa("handle 1 root mq")
+   qa("parent 1:1 handle %x %s",VO, queuetype)
+   qa("parent 1:2 handle %x %s",VI, queuetype)
+   qa("parent 1:3 handle %x %s",BE, queuetype)
+   qa("parent 1:4 handle %x %s",BK, queuetype)
+   wireless_filters()
+end
+
+-- Various models
+
+local function wireless_sfq()
+   wireless_setup("sfq")
+end
+
+-- erics sfq and erics sfqred with 
+-- some arbitrary speeds and bandwidths (unused)
+-- TiQ would be better
+
+local function wireless_efq()
+   qa("handle 1 root mq")
+   efq("1:1",VO,20,30)
+   efq("1:2",VI,50,20)
+   efq("1:3",BE,150,100)
+   efq("1:4",BK,30,10)
+   wireless_filters()
+end
+
+local function wireless_efqr()
+   qa("handle 1 root mq")
+   efqr("1:1",VO,20,30)
+   efqr("1:2",VI,50,20)
+   efqr("1:3",BE,150,100)
+   efqr("1:4",BK,30,10)
+   wireless_filters()
+end
+
+-- FIXME: add HTB rate limiter support for a hm gateway
+-- What we want are various models expressed object orientedly
+-- so we can tie them together eventually
+-- This is not that. We ARE trying to get to where the numbering
+-- schemes are consistent enough to tie everything together
+-- sanely...
+
+local function model_qfq_subdisc(base)
+   cb(base,MULTICAST,env.MDISC)
+   cb(base,DEFAULTB,env.NORMDISC)
+   fa_defb(base)
+   fa_mcast(base); 
+   q_bins(base);
+   fa_bins(base); 
+end
+
+-- FIXME: Finish this up
+
+local function model_qfq_ared(base)
+   cb(base,MULTICAST,env.MDISC)
+   cb(base,DEFAULTB,env.NORMDISC)
+   fa_defb(base)
+   fa_mcast(base); 
+   q_bins(base);
+   fa_bins(base); 
+end
+
+local function model_qfq_red(base)
+   cb(base,MULTICAST,env.MDISC)
+   cb(base,DEFAULTB,env.NORMDISC)
+   fa_defb(base)
+   fa_mcast(base); 
+   q_bins(base);
+   fa_bins(base); 
+end
+
+local function model_sfq(base)
+   qa("parent %x sfq",base)
+end
+
+-- Wireless devices are multi-queued - BUT the hardware
+-- enforces differences in behavior vs the queues
+-- (actually hostapd does that)
+-- FIXME: get a grip on lua iterators
+
+local function wireless_qfq()
+   wireless_setup("qfq")
+   for i,v in ipairs(WQUEUES) do
+      model_qfq_subdisc(v)
+   end
+end
+
+local function wireless_qfqr()
+   wireless_setup("qfq")
+   for i,v in ipairs(WQUEUES) do
+      model_qfq_ared(v)
+   end
+end
+
+-- FIXME: just stubs for now
+
+local function wireless_ared()
+   qa("handle 1 root mq")   
+   for i,v in ipairs(WQUEUES) do
+      model_qfq_ared(v)
+   end
+   wireless_filters()
+end
+
+-- FIXME: just stubs for now
+
+local function wireless_red()
+   qa("handle 1 root mq")
+   for i,v in ipairs(WQUEUES) do
+      model_qfq_red(v)
+   end
+   wireless_filters()
+end
+
+-- FIXME - mqprio might not be available
+-- FIXME - rethink multi-queue idea
+
+local function ethernet_qfq(queues)
+   c = queues
+--   for i=0,c do
+   if queues > 1 then
+      qa("handle %x root qfq",10)
+   else
+      qa("handle %x root qfq",10)
+   end
+   model_qfq_subdisc(10)
+end
+
+local function ethernet_sfq(queues)
+	 qa("handle %x root sfq",10)
+end
+
+local function ethernet_efq(queues)
+	 qa("root handle %x est 1sec 8sec sfq limit 2000 depth 24 headdrop flows %d divisor 16384",10, 150)
+end
+
+local function ethernet_efqr(queues)
+-- FIXME, we can do sane things with speed here
+	 qa("root handle %x: est 1sec 4sec sfq limit 300 headdrop flows %d divisor 16384 redflowlimit 100000 min 8000 max 60000 probability 0.20 ecn",10,150)
+end
+
+-- FIXME: just stubs for now
+
+local function ethernet_ared(queues)
+	 qa("handle %x root red",10)
+end
+
+local function ethernet_red(queues)
+	 qa("handle %x root red",10)
+end
+
+
+-- I have to think about the calculations for 100Mbit and below...
+
+-- FIXME: Think on the architecture and models harder
+-- first. Need to also be able to stick HSFC or HTB
+-- on top of this
+
+WCALLBACKS = { ["qfq"] = wireless_qfq, 
+	       ["qfqred"] = wireless_qfqr,
+	       ["red"] = wireless_red,
+	       ["ared"] = wireless_ared,
+	       ["sfq"] = wireless_sfq,
+	       ["efq"] = wireless_efq,
+	       ["efqred"] = wireless_efqr }
+
+ECALLBACKS = { ["qfq"] = ethernet_qfq, 
+	       ["qfqred"] = ethernet_qfqr,
+	       ["red"] = ethernet_red,
+	       ["ared"] = ethernet_ared,
+	       ["sfq"] = ethernet_sfq,
+	       ["efq"] = ethernet_efq,
+	       ["efqred"] = ethernet_efqr }
+
+-- couple other models - dsl, wshaper, etc, needed
+-- pingopt and argv processing too
+
+local function wireless(model)
+   if WCALLBACKS[model] ~= nil then 
+      return WCALLBACKS[model]() 
+   end
+   return nil
+end
+
+local function ethernet(model)
+   if ECALLBACKS[model] ~= nil then 
+      return ECALLBACKS[model](ethernet_setup(IFACE)) 
+   end
+   return nil
+end
+
+-- FIXME - do something intelligent when faced with a bridge or vlan
+
+itype=interface_type(IFACE)
+
+if itype == 'wireless' or itype == 'ethernet' then
+   kernel_prereqs(PREREQS)
+   exec(sf("tc qdisc del dev %s root",IFACE))
+   tc=popen(sf("%s %s",env.TC,env.TCARG),'w')
+   if itype == 'wireless' then 
+      wireless(env.QMODEL) 
+--     FIXME: you watch this code set the class, then not show up in tc
+--     mac80211e()
+--     iptables_insert(IFACE,"W80211e")
+   end
+   if itype == 'ethernet' then ethernet(env.QMODEL) end
+end
