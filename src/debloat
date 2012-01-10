@@ -173,6 +173,7 @@ end
 if is_openwrt() then 
    env.INSMOD = "/sbin/insmod"
    env.ETHTOOL = "/usr/sbin/ethtool"
+   env.ETHTOOL = "/usr/sbin/tc"
 end
 
 -- pull params from conf file
