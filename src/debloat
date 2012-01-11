@@ -629,12 +629,12 @@ local function htb_sfq_red(speed,flows)
 end
 
 local function efq(parent, handle, speed, flows)
-   qa(sf("parent %s handle %x: est 1sec 8sec sfq limit 2000 depth 24 headdrop flows %d divisor 16384",
+   qa(sf("parent %s handle %x: est 1sec 8sec sfq limit 2000 depth 12 headdrop flows %d divisor 16384",
 	 parent,handle,flows))
 end
 
 local function efqr(parent, handle, speed, flows)
-   qa(sf("parent %s handle %x: est 1sec 4sec sfq limit 300 headdrop flows %d divisor 16384 redflowlimit 40000 min 4500 max 18000 probability 0.20 ecn",parent,handle,flows))
+   qa(sf("parent %s handle %x: est 1sec 4sec sfq limit 300 headdrop flows %d depth 12 divisor 16384 redflowlimit 40000 min 4500 max 18000 probability 0.20 ecn",parent,handle,flows))
 end
 
 function iptables4(...)
