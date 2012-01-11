@@ -15,8 +15,8 @@ params = { "MDISC", "BIGDISC", "NORMDISC", "BINS", "MAX_HWQ_BYTES",
 	   "QMODEL", "FORCE_SPEED", "FORCE_RING", "LSMOD", 
 	   "UPLINK", "DOWNLINK", "IFACE", "SPEED", 
 	   "NAT", "NAT64", "CLAMP_MSS", "SYN_FLOOD", "MTU",
-	   "TC", "TCARG", "ETHTOOL", "INSMOD", "LSMOD", "IPTABLES", "IP6TABLES",
-	   "PINGOPT" }
+	   "TC", "TCARG", "ETHTOOL", "INSMOD", "LSMOD", "IPTABLES",	
+	   "IP6TABLES", "PINGOPT" }
 
 -- Useful defaults
 
@@ -373,6 +373,10 @@ end
 
 function kernel_prereqs(prereqs)
    return insmod(prereq_check(prereqs))
+end
+
+function kleinrock(bandwidth, delay, flows)
+   return math.ceil((math.sqrt(flows)*bandwidth*delay)-.5)
 end
 
 -- FIXME:
