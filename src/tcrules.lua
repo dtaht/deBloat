@@ -148,9 +148,9 @@ function END ()
    end
    
    -- filter rule
+   filterc=1
    for i=1,n do
       print("tc filter add dev ",device," parent 1: prio ",class[i]," protocol ip handle ",class[i]," fw flowid 1:",class[i],"0") 
-      filterc=1
       if (filter[i] ~= "") then
 	 print("tc filter add dev ",device," parent ",class[i],"00: handle ",filterc,"0 ",filter[i])
 	 filterc=filterc+1
