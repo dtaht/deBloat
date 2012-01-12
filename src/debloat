@@ -621,6 +621,7 @@ if env.NAT then
 else
    fap("%x: handle 3 protocol all prio 97 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
 end
+pingopt(sf("%x:",parent),sf("%x:%x",parent,DEFAULTB))
 -- At one point I was trying to handle ipv6 separately
 -- fa("protocol ipv6 parent %x: handle 4 prio 98 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
 end
