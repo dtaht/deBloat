@@ -40,7 +40,9 @@ env = { ["TC"] = "/sbin/tc",
 	["DEPTH"] = 24,
 	["QMODEL"] = "sfq",
 	["MAX_HWQ_BYTES"] = 3000,
-	["ECNMASK"] = 0xfc
+	["ECNMASK"] = 0xfc,
+	["EST_MIN"] = 1,
+	["EST_MAX"] = 4
      }
 
 -- various shortcuts for commonly used functions
@@ -131,19 +133,20 @@ also.
 * Default Bins
 
 You can do tricks with the DEFAULTB concept, creating a filter to
-optimize for ping, for example, which makes tests reproducable Another
-example would be to set aside bins for voip or dns, etc. Still, it is
-saner to just let the filter do all the work of finding a decent bin
+optimize for ping, for example, which makes tests
+reproducable. Another example would be to set aside bins for voip or
+dns, etc. Still, it is saner to just let the filter do all the work of
+finding a decent bin.
 
 The only purpose for DEFAULTB at the moment is to have a safe place to
-put packets until all the filters and bins are setup.
+put packets until all the filters and bins are setup. 
 
 * Other options
 
 There are many other environment variables that can be set. Most
 notably - the QMODEL has various forms of AQM/FQ/shaper available.
 
-Available QMODELS are qfq, sfq, redsfq, efq and various combinations
+Available QMODELS are qfq, sfq, sfqred, efq and various combinations
 thereof.
 
 They work on either ethernet or wireless and try to deal with
@@ -451,35 +454,63 @@ end
 -- ntuple-filters: off
 -- receive-hashing: off
 
--- FIXME
-
--- FIXME need trim or word command
--- sometimes I really do miss perl
+function string:trim ()
+   return (string.gsub(self, "^%s*(.-)%s*$", "%1"))
+end
 
 function offloads(iface)
    local t = { }
-   for i,v in pairs(tslurpc(sf("%s -k %s",env.ETHTOOL,iface))) do
+   for i,v in ipairs(tslurpc(sf("%s -k %s",env.ETHTOOL,iface))) do
       local h = v:split(":")
-      t[h[1]] = h[2] -- fixme, whitespace removal needed, on = true, off=false
+      local j = h[1]:split(" ")
+      if j[1] ~= "Offload" then
+	 t[h[1]:trim()] = h[2]:trim()
+	 -- FIXME: should probably change 'off' and 'on' to false and true
+      end
    end
    return t
 end
 
--- x = offloads("eth0")
--- for i,v in pairs(x) do
---    print("i=",i,"v=",v)
--- end
+-- test the offloads problem
+-- we have a wide range of possible inputs to test against as yet
+
+function test_offloads(iface) 
+   local o = offloads(iface)
+   for i,v in pairs(o) do
+      print(sf("%s %s",i,v))
+   end
+end
+
+-- FIXME - could use a little more thought on creating the
+-- hash
 
 function ring_params(iface)
    local t = { }
-   for i,v in pairs(tslurpc(sf("%s -g %s",env.ETHTOOL,iface))) do
+   local state = 0
+   for i,v in ipairs(tslurpc(sf("%s -g %s",env.ETHTOOL,iface))) do
       local h = v:split(":")
-      -- FIXME, now we have to parse the default vs the non-default
-      --t[h[1]] = h[2] -- fixme, whitespace removal needed, on = true, off=false
+      local j = h[1]:split(" ")
+      if j[1] == "Ring" or j[1] == "Pre-set" then
+	 -- do nothing
+      elseif j[1] == "Current" then state = 1
+      elseif state == 0 then
+	 t['max_' .. h[1]:trim()] = h[2]:trim()
+      elseif state == 1 then
+	 t['cur_' .. h[1]:trim()] = h[2]:trim()
+      end
    end
    return t
 end
 
+function test_ring_params(iface) 
+   local o = ring_params(iface)
+   for i,v in pairs(o) do
+      print(sf("%s %s",i,v))
+   end
+end
+
+-- test_offloads(IFACE)
+-- test_ring_params(IFACE)
 
 function iface_get(iface)
 end
@@ -505,24 +536,23 @@ local function speed_get(iface)
    return slurpf(sf("/sys/class/net/%s/speed",iface)) 
 end
 
--- FIXME: detect speed reliably somehow
--- wireless is hard... wired may vary
--- when going up or down
-
--- local speedtotxring = 
-
+-- Doing this as a lookup table hurt lua
 -- FIXME: Not clear how to reset to advertising all
+-- Not clear how to reset this parameter from 
+-- userspace to autonegotiate
+-- What to do with non-sensical values that you
+-- get before an interface is live?
 -- Maybe use ethtool speed option?
--- Think about hashing on this side, too.
 
--- this had nasty effects on lua's speed
--- local speedtoethtool = { ["100"] = "0x008",
--- 			 ["10"] = "0x002",
--- 		         ["1000"] = "0x020",
--- 			 ["10000"] = "0x1000",
--- 			 ["0"] = "0x1000",
--- 		      }
-
+local function advertise_speed(s)
+   local x = "0x000"
+   if s < 10001 then x = "0x1000" end
+   if s < 1001 then x = "0x020" end
+   if s < 101 then x = "0x008" end
+   if s < 11 then x = "0x002" end
+   if s == 0 then x = "0x000" end
+   return x
+end
 
 -- TSO does terrible things to the scheduler
 -- GSO does as well
@@ -533,18 +563,25 @@ end
 -- argue for same for gigE, too, for desktops
 
 local function ethernet_setup(iface)
+   local o = offloads(iface)
+   local tx = ring_params(iface)
+
 -- for testing, limit ethernet to SPEED
+
    if env.FORCE_SPEED then
-      ethtool(sf("-s %s advertise 0x008",iface))
+      ethtool(sf("-s %s advertise %s",iface,
+		 advertise_speed(env.FORCE_SPEED)))
    end
    if env.FORCE_RING then
-      ethtool(sf("-G %s tx %d",iface,env.FORCE_RING))
+	 if env.FORCE_RING < tx['cur_TX'] then
+	    ethtool(sf("-G %s tx %d",iface,env.FORCE_RING))
+	 end
    end
    local queues = bql_setup(iface)
    if env.TSO == nil then
-   ethtool("-K %s gso off",iface)
-   ethtool("-K %s tso off",iface)
-   ethtool("-K %s ufo off",iface)
+      ethtool("-K %s gso off",iface)
+      ethtool("-K %s tso off",iface)
+      ethtool("-K %s ufo off",iface)
    end
    return queues
 end
@@ -1014,8 +1051,6 @@ local function np(args,prio,match,h)
         match ip %s %s %s flowid 1:30",prio,match,v, h)
    end
 end
-
--- FIXME: Maybe I can move the nil check to the above?
 
 if env.NOPRIOPORTDST ~= nil then 
    np(env.NOPRIOPORTDST,14,"dport","0xffff")
