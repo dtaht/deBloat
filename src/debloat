@@ -22,7 +22,7 @@ params = { "MDISC", "BIGDISC", "NORMDISC", "BINS", "MAX_HWQ_BYTES",
 	   "TC", "TCARG", "ETHTOOL", "INSMOD", "LSMOD", "IPTABLES",	
 	   "IP6TABLES", "PINGOPT", "FLOWS", "TSO", "BURST",
 	   "NOPRIOHOSTSRC","NOPRIOHOSTDST","NOPRIOPORTSRC", 
-	   "NOPRIOPORTDST", "EST_MIN", "EST_MAX", "HEADDROP" }
+	   "NOPRIOPORTDST", "EST_MIN", "EST_MAX", "HEADDROP", "ECNMASK" }
 
 -- Useful defaults
 
@@ -39,7 +39,8 @@ env = { ["TC"] = "/sbin/tc",
 	["BINS"] = 2048,
 	["DEPTH"] = 24,
 	["QMODEL"] = "sfq",
-	["MAX_HWQ_BYTES"] = 3000
+	["MAX_HWQ_BYTES"] = 3000,
+	["ECNMASK"] = 0xfc
      }
 
 -- various shortcuts for commonly used functions
@@ -946,16 +947,7 @@ end
 -- low priority destination ports
 -- NOPRIOPORTDST="21"
 
--- For reference, this is a slavish re-implementation of the original
--- wondershaper, bugs with ecn, and ipv6 included
-
--- The new SFQ should also improve it.
-
--- That said, it is seriously flawed and I'd
--- like to be able to fully model it's behavior,
--- hence this implementation.
-
-local function owshaper(queues)
+local function wshaper(queues)
    if env.UPLINK == nil or env.DOWNLINK == nil then
       usage("UPLINK and DOWNLINK environment variables are required")
    end
@@ -982,9 +974,7 @@ local function owshaper(queues)
 
 -- TOS Minimum Delay (ssh, NOT scp) in 1:10:
 
-   fap("1:0 protocol ip prio 10 u32 match ip tos 0x10 0xff flowid 1:10")
-
--- ECN bug above! 0xff is wrong
+   fap("1:0 protocol ip prio 10 u32 match ip tos 0x10 0x%x flowid 1:10",env.ECNMASK)
 
 -- ICMP (ip protocol 1) in the interactive class 1:10 so we 
 -- can do measurements & impress our friends:
@@ -1054,6 +1044,20 @@ fap("1: protocol ip prio 18 u32 match ip dst 0.0.0.0/0 flowid 1:20")
 
 end
 
+-- For reference, this is a slavish re-implementation of the original
+-- wondershaper, bugs with ecn, and ipv6 included
+
+-- The new SFQ should also improve it.
+
+-- That said, it is seriously flawed and I'd
+-- like to be able to fully model it's behavior,
+-- hence this implementation.
+
+local function owshaper(queues)
+   env.ECNMASK = 0xff -- original wshaper screws up on ecn
+   return wshaper(queues)
+end
+
 -- I have to think about the calculations for 100Mbit and below...
 
 -- FIXME: Think on the architecture and models harder
@@ -1067,7 +1071,8 @@ WCALLBACKS = { ["qfq"] = wireless_qfq,
 	       ["sfq"] = wireless_sfq,
 	       ["efq"] = wireless_efq,
 	       ["sfqred"] = wireless_efqr, 
-	       ["owshaper"] = wireless_wshaper
+	       ["owshaper"] = wireless_wshaper,
+	       ["wshaper"] = wireless_wshaper
 }
 
 ECALLBACKS = { ["qfq"] = ethernet_qfq, 
@@ -1077,6 +1082,7 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["sfq"] = ethernet_sfq,
 	       ["efq"] = ethernet_efq,
 	       ["sfqred"] = ethernet_efqr,
+	       ["wshaper"] = wshaper,
 	       ["owshaper"] = owshaper,
 }
 
