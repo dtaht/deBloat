@@ -218,7 +218,7 @@ BINS=env.BINS
 MULTICAST=BINS+1
 DEFAULTB=BINS+2
 
-PREREQS = { "sch_qfq", "cls_u32", "cls_flow", "sch_sfq", "sch_red" }
+PREREQS = { "sch_qfq", "cls_u32", "cls_flow", "sch_sfq", "sch_red", "sch_htb" }
 
 -- we can get more complex later
 
@@ -931,10 +931,18 @@ local function ethernet_red(queues)
 	 qa("handle %x root red",10)
 end
 
+-- Openwrt emulation
+-- The current openwrt shaper uses a combination of
+-- HFSC, SFQ, and RED
+
+function oopenwrt(queues)
+   usage("Not complete yet")
+end
+
 -- Wondershaper emulation
 
-local function wireless_wshaper(queues)
-   usage("Wondershaper emulation not supported for wireless")
+local function unsupported_shaper(queues)
+   usage("Shaper not supported for wireless")
 end
 
 -- The wondershaper 
@@ -1073,7 +1081,8 @@ WCALLBACKS = { ["qfq"] = wireless_qfq,
 	       ["sfq"] = wireless_sfq,
 	       ["efq"] = wireless_efq,
 	       ["sfqred"] = wireless_efqr, 
-	       ["owshaper"] = wireless_wshaper,
+	       ["oopenwrt"] = unsupported_shaper, 
+	       ["owshaper"] = unsupported_shaper,
 	       ["wshaper"] = wireless_wshaper
 }
 
@@ -1084,6 +1093,7 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["sfq"] = ethernet_sfq,
 	       ["efq"] = ethernet_efq,
 	       ["sfqred"] = ethernet_efqr,
+	       ["oopenwrt"] = oopenwrt,
 	       ["wshaper"] = wshaper,
 	       ["owshaper"] = owshaper,
 }
