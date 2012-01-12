@@ -20,7 +20,7 @@ params = { "MDISC", "BIGDISC", "NORMDISC", "BINS", "MAX_HWQ_BYTES",
 	   "UPLINK", "DOWNLINK", "IFACE", "SPEED", "DEPTH",
 	   "NAT", "NAT64", "CLAMP_MSS", "SYN_FLOOD", "MTU",
 	   "TC", "TCARG", "ETHTOOL", "INSMOD", "LSMOD", "IPTABLES",	
-	   "IP6TABLES", "PINGOPT", "FLOWS", "TSO", "BURST",
+	   "IP6TABLES", "PINGOPT", "FLOWS", "TSO", "BURST", "IPV6",
 	   "NOPRIOHOSTSRC","NOPRIOHOSTDST","NOPRIOPORTSRC", 
 	   "NOPRIOPORTDST", "EST_MIN", "EST_MAX", "HEADDROP", "ECNMASK" }
 
@@ -42,7 +42,8 @@ env = { ["TC"] = "/sbin/tc",
 	["MAX_HWQ_BYTES"] = 3000,
 	["ECNMASK"] = 0xfc,
 	["EST_MIN"] = 1,
-	["EST_MAX"] = 4
+	["EST_MAX"] = 4,
+	["IPV6"] = true
      }
 
 -- various shortcuts for commonly used functions
@@ -1100,6 +1101,7 @@ end
 
 local function owshaper(queues)
    env.ECNMASK = 0xff -- original wshaper screws up on ecn
+   env.IPV6 = false
    return wshaper(queues)
 end
 
@@ -1174,7 +1176,11 @@ end
 if env.PINGOPT then
    pingopt = function(parent,flow) 
 		fap(sf("%s protocol ip prio 10 u32 match ip protocol 1 0xff flowid %s",parent,flow))
+		if(env.IPV6) then
+		   -- arguably we should only match echo and echo reply but...
+		fap(sf("%s protocol ipv6 prio 10 u32 match ip protocol 1 0xff flowid %s",parent,flow))
 		end
+	     end
 end
 
 if env.QDEBUG then
