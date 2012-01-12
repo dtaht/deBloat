@@ -167,6 +167,9 @@ print(s)
 os.exit(-1)
 end
 
+pingopt = function(...) return nil end
+warn = function(...) return nil end
+
 function file_exists(name)
    local f=open(name,"r")
    if f ~= nil then f:close(); return true else return false end
@@ -979,9 +982,7 @@ local function wshaper(queues)
 -- ICMP (ip protocol 1) in the interactive class 1:10 so we 
 -- can do measurements & impress our friends:
 
-if env.PINGOPT ~= nil then
-   fap("1:0 protocol ip prio 10 u32 match ip protocol 1 0xff flowid 1:10")
-end
+   pingopt("1:0","1:10")
 
 -- There is no IPv6 support in old wondershaper
 
@@ -1124,12 +1125,19 @@ function resettc()
    return opentc()
 end
 
+if env.PINGOPT then
+   pingopt = function(parent,flow) 
+		fap(sf("%s protocol ip prio 10 u32 match ip protocol 1 0xff flowid %s",parent,flow))
+		end
+end
+
 if env.QDEBUG then
    env.TC="/bin/cat"
    env.TCARG=" "
 end
 
 -- FIXME - do something intelligent when faced with a bridge or vlan
+
 
 itype=interface_type(IFACE)
 
