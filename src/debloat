@@ -1,22 +1,28 @@
 #!/usr/bin/lua
 
 -- Use of various qdiscs for ethernet and wireless
--- This script expects to be run in /etc/network/if-pre-up.d
--- To run it manually, do a IFACE=yournetworkcard ./debloat
--- For NATTED interfaces, use a NAT=y for a better filter
--- To select QFQ use QMODEL=qfq 
 
--- debloat currently requires a new version of tc
--- Build a version and stick it somewhere and change
--- the TC variable to suit. These are the possible 
--- parameters that can be changed via environment variables.
+-- This script expects to be run in /etc/network/if-pre-up.d To run it
+-- manually, do a IFACE=yournetworkcard ./debloat 
+
+-- For NATTED interfaces, use a NAT=y for a better filter 
+-- To select QFQ use QMODEL=qfq. 
+
+-- Some options currently require a new version of tc. Build a version
+-- of iproute2 and stick it somewhere and change the TC variable to
+-- suit. 
+
+-- These are the possible parameters that can be changed via
+-- environment variables.
 
 params = { "MDISC", "BIGDISC", "NORMDISC", "BINS", "MAX_HWQ_BYTES", 
-	   "QMODEL", "FORCE_SPEED", "FORCE_RING", "LSMOD", 
-	   "UPLINK", "DOWNLINK", "IFACE", "SPEED", 
+	   "QMODEL", "FORCE_SPEED", "FORCE_RING", "QDEBUG", "VERBOSE",
+	   "UPLINK", "DOWNLINK", "IFACE", "SPEED", "DEPTH",
 	   "NAT", "NAT64", "CLAMP_MSS", "SYN_FLOOD", "MTU",
 	   "TC", "TCARG", "ETHTOOL", "INSMOD", "LSMOD", "IPTABLES",	
-	   "IP6TABLES", "PINGOPT" }
+	   "IP6TABLES", "PINGOPT", "FLOWS", "TSO", "BURST",
+	   "NOPRIOHOSTSRC","NOPRIOHOSTDST","NOPRIOPORTSRC", 
+	   "NOPRIOPORTDST", "EST_MIN", "EST_MAX", "HEADDROP" }
 
 -- Useful defaults
 
@@ -31,6 +37,7 @@ env = { ["TC"] = "/sbin/tc",
 	["BIGDISC"] =  "pfifo_head_drop limit 32",
 	["NORMDISC"] = "pfifo_head_drop limit 32",
 	["BINS"] = 2048,
+	["DEPTH"] = 24,
 	["QMODEL"] = "sfq",
 	["MAX_HWQ_BYTES"] = 3000
      }
@@ -46,6 +53,7 @@ VO=0x10; VI=0x20; BE=0x30; BK=0x40
 local WQUEUES = { BE, VO, VI, BK }
 
 local function usage(s) o=[[ 
+
 The debloat tool aims for minimal latency (particularly under load) on
 the network.
 
@@ -79,7 +87,7 @@ is helpful.
 
 Some general overall design notes:
 
-This started out life as a shell script to excercise qfq,
+This started out life as a shell script to exercise qfq,
 Now it does a lot more than that and is getting crufty. 
 
 SFQ is now the default. QFQ is too buggy prior to 3.3 to use.
@@ -158,14 +166,17 @@ print(s)
 os.exit(-1)
 end
 
-
 function file_exists(name)
    local f=open(name,"r")
    if f ~= nil then f:close(); return true else return false end
 end
 
 local function is_openwrt() 
-   if file_exists("/etc/uci-defaults") then return true else return false end
+   if file_exists("/etc/uci-defaults") then 
+      return true 
+   else 
+      return false 
+   end
 end
 
 -- Override various defaults with env vars
@@ -375,8 +386,12 @@ function kernel_prereqs(prereqs)
    return insmod(prereq_check(prereqs))
 end
 
+function round(v)
+   return math.ceil(v-.5)
+end
+
 function kleinrock(bandwidth, delay, flows)
-   return math.ceil((math.sqrt(flows)*bandwidth*delay)-.5)
+   return round(math.sqrt(flows)*bandwidth*delay)
 end
 
 -- FIXME:
@@ -522,17 +537,21 @@ local function ethernet_setup(iface)
       ethtool(sf("-G %s tx %d",iface,env.FORCE_RING))
    end
    local queues = bql_setup(iface)
+   if env.TSO == nil then
    ethtool("-K %s gso off",iface)
    ethtool("-K %s tso off",iface)
    ethtool("-K %s ufo off",iface)
+   end
    return queues
 end
 
 -- Some TC helpers
 
 -- TC tends to be repetitive and hard to read
--- So this shortens things considerably by doing
+-- So these function shorten things considerably by doing
 -- the "{class,qdisc,filter} add dev %s" for us
+-- It also means lua keeps less unique strings around.
+
 -- Constructing something that was ** reversible **
 -- and cleaner to express would be better that this
 
@@ -540,23 +559,41 @@ local castring=sf("class add dev %s ", env.IFACE)
 local fastring=sf("filter add dev %s ",env.IFACE)
 local qastring=sf("qdisc add dev %s ", env.IFACE)
 
+-- Similarly, the 'parent' string is often used
+
+local capstring=sf("class add dev %s parent ", env.IFACE)
+local fapstring=sf("filter add dev %s parent ",env.IFACE)
+local qapstring=sf("qdisc add dev %s parent ", env.IFACE)
+
 local function ca(...) 
    return tc:write(castring,sf(...),"\n") 
+end
+
+local function cap(...) 
+   return tc:write(capstring,sf(...),"\n") 
 end
 
 local function fa(...) 
    return tc:write(fastring,sf(...),"\n") 
 end
 
+local function fap(...) 
+   return tc:write(fapstring,sf(...),"\n") 
+end
+
 local function qa(...) 
    return tc:write(qastring,sf(...),"\n") 
+end
+
+local function qap(...) 
+   return tc:write(qapstring,sf(...),"\n") 
 end
 
 -- QFQ: Create a bin attached to the parent class
 
 local function cb(base,bin,disc)
-   ca("parent %x classid %x:%x qfq",base,base,bin)
-   qa("parent %x:%x %s",base,bin,disc)
+   cap("%x classid %x:%x qfq",base,base,bin)
+   qap("%x:%x %s",base,bin,disc)
 end
 
 -- FIXME: It would be nice to have a cleaner way to match all multicast
@@ -587,8 +624,8 @@ end
 local function q_bins(parent)
    for i=0,env.BINS
    do
-      ca("parent %x: classid %x:%x qfq",parent,parent,i) 
-      qa("parent %x:%x %s",parent,i,env.BIGDISC)
+      cap("%x: classid %x:%x qfq",parent,parent,i) 
+      qap("%x:%x %s",parent,i,env.BIGDISC)
    end
 end
 
@@ -617,28 +654,30 @@ end
 -- by a factor of three on the two different systems I've looked at
 
 -- FIXME: I don't think I should be measuring speed in megabits
--- Eric's original code had a mtu of 40000, which I assume is needed for TSO/GSO to work.
--- These quantums are way too large for lower speeds
+
+-- Eric's original code had a mtu of 40000, which I assume is needed
+-- for TSO/GSO to work.  These quantums are way too large for lower
+-- speeds
 
 local function htb_sfq(speed,flows)
    qa("root handle 1: est 1sec 8sec htb default 1")
-   ca("parent 1: classid 1:1 est 1sec 8sec htb rate 200Mbit mtu 1500 quantum 80000")
-   qa("parent 1:1 handle 10: est 1sec 8sec sfq limit 2000 depth 10 headdrop flows 1000 divisor 16384")
+   cap("1: classid 1:1 est 1sec 8sec htb rate 200Mbit mtu 1500 quantum 80000")
+   qap("1:1 handle 10: est 1sec 8sec sfq limit 2000 depth 10 headdrop flows 1000 divisor 16384")
 end
 
 local function htb_sfq_red(speed,flows)
    qa("root handle 1: est 1sec 8sec htb default 1")
-   ca("parent 1: classid 1:1 est 1sec 8sec htb rate 200Mbit mtu 1500 quantum 80000")
-   qa("parent 1:1 handle 10: est 1sec 4sec sfq limit 3000 headdrop flows 512 divisor 16384 redflowlimit 100000 min 8000 max 60000 probability 0.20 ecn")
+   cap("1: classid 1:1 est 1sec 8sec htb rate 200Mbit mtu 1500 quantum 80000")
+   qap("1:1 handle 10: est 1sec 4sec sfq limit 3000 headdrop flows 512 divisor 16384 redflowlimit 100000 min 8000 max 60000 probability 0.20 ecn")
 end
 
 local function efq(parent, handle, speed, flows)
-   qa(sf("parent %s handle %x: est 1sec 8sec sfq limit 2000 depth 12 headdrop flows %d divisor 16384",
+   qap(sf("%s handle %x: est 1sec 8sec sfq limit 2000 depth 12 headdrop flows %d divisor 16384",
 	 parent,handle,flows))
 end
 
 local function efqr(parent, handle, speed, flows)
-   qa(sf("parent %s handle %x: est 1sec 4sec sfq limit 300 headdrop flows %d depth 12 divisor 16384 redflowlimit 40000 min 4500 max 18000 probability 0.20 ecn",parent,handle,flows))
+   qap(sf("%s handle %x: est 1sec 4sec sfq limit 300 headdrop flows %d depth 12 divisor 16384 redflowlimit 40000 min 4500 max 18000 probability 0.20 ecn",parent,handle,flows))
 end
 
 function iptables4(...)
@@ -736,10 +775,10 @@ end
 
 local function wireless_setup(queuetype)
    qa("handle 1 root mq")
-   qa("parent 1:1 handle %x %s",VO, queuetype)
-   qa("parent 1:2 handle %x %s",VI, queuetype)
-   qa("parent 1:3 handle %x %s",BE, queuetype)
-   qa("parent 1:4 handle %x %s",BK, queuetype)
+   qap("1:1 handle %x %s",VO, queuetype)
+   qap("1:2 handle %x %s",VI, queuetype)
+   qap("1:3 handle %x %s",BE, queuetype)
+   qap("1:4 handle %x %s",BK, queuetype)
    wireless_filters()
 end
 
@@ -887,11 +926,138 @@ local function ethernet_red(queues)
 	 qa("handle %x root red",10)
 end
 
+-- Wondershaper emulation
+
+local function wireless_wshaper(queues)
+   usage("Wondershaper emulation not supported for wireless")
+end
+
+-- The wondershaper 
+-- This is improved over the original wondershaper with
+-- Correct ECN support
+-- FIXME: IPv6 support
+
+-- low priority source netmasks
+-- NOPRIOHOSTSRC=
+-- low priority destination netmasks
+-- NOPRIOHOSTDST=
+-- low priority source ports
+-- NOPRIOPORTSRC=
+-- low priority destination ports
+-- NOPRIOPORTDST="21"
+
+-- For reference, this is a slavish re-implementation of the original
+-- wondershaper, bugs with ecn, and ipv6 included
+
+-- The new SFQ should also improve it.
+
+-- That said, it is seriously flawed and I'd
+-- like to be able to fully model it's behavior,
+-- hence this implementation.
+
+local function owshaper(queues)
+   if env.UPLINK == nil or env.DOWNLINK == nil then
+      usage("UPLINK and DOWNLINK environment variables are required")
+   end
+
+   local UPLINK = env.UPLINK
+   local DOWNLINK = env.DOWNLINK
+
+   qa("root handle 1: htb default 20")
+
+-- shape everything at UPLINK speed - this prevents huge queues in
+-- your next hop gateway which destroy latency:
+
+   cap("1: classid 1:1 htb rate %skbit burst 6k",UPLINK)
+   cap("1:1 classid 1:10 htb rate %dkbit burst 6k prio 1",UPLINK)
+   cap("1:1 classid 1:20 htb rate %dkbit burst 6k prio 2",round(9*UPLINK/10))
+   cap("1:1 classid 1:30 htb rate %dkbit burst 6k prio 2",round(8*UPLINK/10))
+
+-- all get Stochastic Fairness:
+-- Note the perturb option is rather excessive now
+
+   qap("1:10 handle 10: sfq perturb 10")
+   qap("1:20 handle 20: sfq perturb 10")
+   qap("1:30 handle 30: sfq perturb 10")
+
+-- TOS Minimum Delay (ssh, NOT scp) in 1:10:
+
+   fap("1:0 protocol ip prio 10 u32 match ip tos 0x10 0xff flowid 1:10")
+
+-- ECN bug above! 0xff is wrong
+
+-- ICMP (ip protocol 1) in the interactive class 1:10 so we 
+-- can do measurements & impress our friends:
+
+if env.PINGOPT ~= nil then
+   fap("1:0 protocol ip prio 10 u32 match ip protocol 1 0xff flowid 1:10")
+end
+
+-- There is no IPv6 support in old wondershaper
+
+-- This is just so wrong in so many cases:
+
+-- To speed up downloads while an upload is going on, put ACK packets
+-- in the interactive class:
+
+fap([[1: protocol ip prio 10 u32 \
+               match ip protocol 6 0xff \
+	       match u8 0x05 0x0f at 0 \
+	       match u16 0x0000 0xffc0 at 2 \
+	       match u8 0x10 0xff at 33 flowid 1:10]])
+
+-- some traffic however suffers a worse fate
+
+local function np(args,prio,match,h)
+   for i,v in pairs(args:split(" ")) do
+   fap("1: protocol ip prio %d u32 \
+        match ip %s %s %s flowid 1:30",prio,match,v, h)
+   end
+end
+
+-- FIXME: Maybe I can move the nil check to the above?
+
+if env.NOPRIOPORTDST ~= nil then 
+   np(env.NOPRIOPORTDST,14,"dport","0xffff")
+end
+
+if env.NOPRIOPORTSRC ~= nil  then
+   np(env.NOPRIOPORTSRC,15,"sport", "0xffff")
+end
+
+if env.NOPRIOHOSTSRC ~= nil then
+   np(env.NOPRIOHOSTSRC,16,"src"," ")
+end
+
+if env.NOPRIOHOSTDST ~= nil then 
+   np(env.NOPRIOHOSTDST,17,"dst"," ")
+end
+
+-- rest is 'non-interactive' ie 'bulk' and ends up in 1:20
+
+fap("1: protocol ip prio 18 u32 match ip dst 0.0.0.0/0 flowid 1:20")
+
+-------------------- downlink --------------------------
+
+-- slow downloads down to somewhat less than the real speed to prevent
+-- queuing at our ISP. Tune to see how high you can set it.  ISPs tend
+-- to have *huge* queues to make sure big downloads are fast
+--
+-- attach ingress policer:
+
+   qa("handle ffff: ingress")
+
+-- filter *everything* to it (0.0.0.0/0), drop everything that's
+-- coming in too fast:
+
+   fap("ffff: protocol ip prio 50 u32 match ip src 0.0.0.0/0 police rate %dkbit burst 10k drop flowid :1",DOWNLINK)
+
+end
 
 -- I have to think about the calculations for 100Mbit and below...
 
 -- FIXME: Think on the architecture and models harder
--- first. Need to also be able to stick HSFC or HTB
+-- first. Need to also be able to stick HSFC, netem, or HTB
 -- on top of this
 
 WCALLBACKS = { ["qfq"] = wireless_qfq, 
@@ -900,7 +1066,9 @@ WCALLBACKS = { ["qfq"] = wireless_qfq,
 	       ["ared"] = wireless_ared,
 	       ["sfq"] = wireless_sfq,
 	       ["efq"] = wireless_efq,
-	       ["efqred"] = wireless_efqr }
+	       ["sfqred"] = wireless_efqr, 
+	       ["owshaper"] = wireless_wshaper
+}
 
 ECALLBACKS = { ["qfq"] = ethernet_qfq, 
 	       ["qfqred"] = ethernet_qfqr,
@@ -908,7 +1076,9 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["ared"] = ethernet_ared,
 	       ["sfq"] = ethernet_sfq,
 	       ["efq"] = ethernet_efq,
-	       ["efqred"] = ethernet_efqr }
+	       ["sfqred"] = ethernet_efqr,
+	       ["owshaper"] = owshaper,
+}
 
 -- couple other models - dsl, wshaper, etc, needed
 -- pingopt and argv processing too
@@ -916,6 +1086,8 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 local function wireless(model)
    if WCALLBACKS[model] ~= nil then 
       return WCALLBACKS[model]() 
+   else
+      usage("AQM model not found")
    end
    return nil
 end
@@ -923,8 +1095,32 @@ end
 local function ethernet(model)
    if ECALLBACKS[model] ~= nil then 
       return ECALLBACKS[model](ethernet_setup(IFACE)) 
+   else
+      usage("AQM model not found")
    end
    return nil
+end
+
+local function opentc()
+   return popen(sf("%s %s",env.TC,env.TCARG),'w')
+end
+
+-- It's annoying to get deletion as an error
+-- And confusing to the user
+
+function resettc()
+   local tc=opentc()
+   tc:write(sf("qdisc del dev %s root\n",IFACE))
+   tc:close()
+   tc = opentc()
+   tc:write(sf("qdisc del dev %s ingress\n",IFACE))
+   tc:close()
+   return opentc()
+end
+
+if env.QDEBUG then
+   env.TC="/bin/cat"
+   env.TCARG=" "
 end
 
 -- FIXME - do something intelligent when faced with a bridge or vlan
@@ -933,8 +1129,8 @@ itype=interface_type(IFACE)
 
 if itype == 'wireless' or itype == 'ethernet' then
    kernel_prereqs(PREREQS)
-   exec(sf("tc qdisc del dev %s root",IFACE))
-   tc=popen(sf("%s %s",env.TC,env.TCARG),'w')
+   tc = resettc()
+
    if itype == 'wireless' then 
       wireless(env.QMODEL) 
 --     FIXME: you watch this code set the class, then not show up in tc
