@@ -1175,10 +1175,10 @@ end
 
 if env.PINGOPT then
    pingopt = function(parent,flow) 
-		fap(sf("%s protocol ip prio 10 u32 match ip protocol 1 0xff flowid %s",parent,flow))
+		fap("%s protocol ip prio 10 u32 match ip protocol 1 0xff flowid %s",parent,flow)
 		if(env.IPV6) then
 		   -- arguably we should only match echo and echo reply but...
-		fap(sf("%s protocol ipv6 prio 10 u32 match ip protocol 1 0xff flowid %s",parent,flow))
+		fap("%s protocol ipv6 prio 10 u32 match ip protocol 1 0xff flowid %s",parent,flow)
 		end
 	     end
 end
