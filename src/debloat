@@ -599,23 +599,23 @@ end
 -- FIXME: It would be nice to have a cleaner way to match all multicast
 
 local function fa_mcast(parent) 
-   fa("protocol ip parent %x: prio 5 u32 match u8 0x01 0x01 at -14 flowid %x:%x",parent,parent,MULTICAST)
-   fa("protocol ipv6 parent %x: prio 6 u32 match u8 0x01 0x01 at -14 flowid %x:%x",parent,parent,MULTICAST)
-   fa("protocol arp parent %x: prio 7 u32 match u8 0x01 0x01 at -14 flowid %x:%x",parent,parent,MULTICAST)
+   fap("%x: protocol ip prio 5 u32 match u8 0x01 0x01 at -14 flowid %x:%x",parent,parent,MULTICAST)
+   fap("%x: protocol ipv6 prio 6 u32 match u8 0x01 0x01 at -14 flowid %x:%x",parent,parent,MULTICAST)
+   fap("%x: protocol arp prio 7 u32 match u8 0x01 0x01 at -14 flowid %x:%x",parent,parent,MULTICAST)
 end
 
 local function fa_defb(parent) 
-   fa("protocol all parent %x: prio 999 u32 match ip protocol 0 0x00 flowid %x:%x",parent,parent,DEFAULTB)
+   fap("%x: protocol all prio 999 u32 match ip protocol 0 0x00 flowid %x:%x",parent,parent,DEFAULTB)
 end
 
 -- FIXME: This needs a correct hash for natted sources when NAT=y and ipv6
 
 local function fa_bins(parent)
 if env.NAT then
-   fa("protocol ipv6 parent %x: handle 3 prio 94 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
-   fa("protocol all parent %x: handle 3 prio 97 flow hash keys proto-dst,nfct-src divisor %d",parent,BINS)
+   fap("%x: handle 3 protocol ipv6 prio 94 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
+   fap("%x: handle 3 protocol all prio 97 flow hash keys proto-dst,nfct-src divisor %d",parent,BINS)
 else
-   fa("protocol all parent %x: handle 3 prio 97 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
+   fap("%x: handle 3 protocol all prio 97 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
 end
 -- At one point I was trying to handle ipv6 separately
 -- fa("protocol ipv6 parent %x: handle 4 prio 98 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
@@ -634,10 +634,10 @@ end
 
 local function mqprio_bins(parent,queues)
 if env.NAT then
-   fa("protocol ipv6 parent %x: handle 3 prio 94 flow hash keys proto-dst,rxhash divisor %d",parent,queues)
-   fa("protocol all parent %x: handle 3 prio 97 flow hash keys proto-dst,nfct-src divisor %d",parent,queues)
+   fap("%x: handle 3 protocol ipv6 prio 94 flow hash keys proto-dst,rxhash divisor %d",parent,queues)
+   fap("%x: handle 3 protocol all prio 97 flow hash keys proto-dst,nfct-src divisor %d",parent,queues)
 else
-   fa("protocol all parent %x: handle 3 prio 97 flow hash keys proto-dst,rxhash divisor %d",parent,queues)
+   fap("%x: handle 3 protocol all prio 97 flow hash keys proto-dst,rxhash divisor %d",parent,queues)
 end
 -- At one point I was trying to handle ipv6 separately
 -- fa("protocol ipv6 parent %x: handle 4 prio 98 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
