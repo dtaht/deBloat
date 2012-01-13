@@ -1,2 +1,8 @@
 * Various scripts for less bufferbloated fair queuing, traffic shaping, etc
 
+The principal item of interest in this repository is the [[file:src/debloat]]
+script which incorporates everything I know about how to get reduced latencies under load on wireless and ethernet.
+
+* There are also tests and test results in the test dir
+
+All of varying quality
