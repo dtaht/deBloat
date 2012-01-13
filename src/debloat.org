@@ -1,0 +1,189 @@
+* Overview
+The debloat tool aims for minimal latency (particularly under load) on
+the network, for hosts, servers, wireless devices, and routers.
+
+There are various forms of traffic shapers and tools in here because
+this is an unsolved problem! Most of the known techniques are in here,
+however, and the results can be quite remarkable. At tested rates of
+100Mbit and 4Mbit, we see interstream latencies drop by over two
+orders of magnitude.
+ 
+This script expects to be run in /etc/network/if-pre-up.d
+
+To run it manually, do a: 
+
+IFACE=yournetworkcard ./this_script
+
+For NATTED interfaces, use a NAT=y for a better filter.
+
+There are many environment variables and at some point will be a conf
+file. The one of greatest importance is "QMODEL" to which I keep
+adding various models for various circumstances. See the end of this
+file for more details.
+
+This script can be run on both debian and openwrt.
+
+Usage of QFQ and the advanced SFQ and SFQRED options currently
+requires a patched version of iproute2 and a Linux 3.3 kernel.
+
+Build a version and stick it somewhere and change TC to suit.
+
+Also, if you are interested in seeing the rules being generated,
+rather than reconfiguring your system
+
+export QDEBUG=1
+
+is helpful.
+
+* Some general overall design notes:
+This started out life as a shell script to exercise qfq,
+Now it does a lot more than that and is getting crufty. 
+
+SFQ is now the default. SFQ itself has been improved significantly
+in Linux 3.3 (eliminating a head of line problem), and in this case
+no new TC utility is required. Also a bug in red was fixed, and no
+new tc utility is required there either. So if you were using either
+or both of these qdiscs, you should automagically see your life 
+improve...
+
+QFQ is too buggy prior to 3.3 to use.
+
+More advanced SFQ options and REDSFQ and QFQ all require a patched
+version of TC. Also, most builds for the linux kernel do not
+enable QFQ by default. QFQ and SFQ are behaving competitively now
+in most circumstances, however.
+
+** Byte Queue Limits is supposed to have a rate limiter that works. 
+
+It is not very effective at less than 100Mbit. I get ~32k peak there
+and with GSO on, at 100Mbit, I have seen latency spikes of up to 70ms.
+
+   (Not recently tested, however)
+
+A per queue limit of 2-3 large packets appears to be the best
+compromise at 100Mbit and below. So typically I hammer down BQL to
+4.5k or 3k at < 100Mbit, and turn GSO/TSO off, and as a result see
+ping against load latencies in the 1 to 2ms range, which is about
+what you would expect. I have tried 1500 bytes, which limited the top
+end performance to about 84Mbit.
+
+For comparison, you will see PFIFO_FAST doing 130+ms, pre BQL, no
+SFQ at 100Mbit.
+
+** A BQL enabled ethernet device driver is helpful
+
+But there is currently no good way to detect if you have one at run
+time. 6-7 of the most major drivers have been convered to BQL, more
+remain.
+
+** Wireless still has problems
+
+This stuff helps on wireless stations, desktops, etc, and on P2P
+wireless links.
+
+*** caveat 1
+
+There remains so much device buffering and retries below the qdisc
+layer as to defeat both FQ and and AQM to a large extent. Also packets
+tend to be held 'forever' (ping rtts of over 10 seconds have been
+observed)
+
+A time in queue optimization at the qdisc layer for the latter problem
+has been proposed, but not implemented, and much further work on the
+wireless driver portion of the stack remains to be designed and agreed
+upon.
+
+BQL has not (and cannot, to a large extent) be implemented on the
+wireless portion of the stack as it currently stands.
+
+*** caveat 2
+
+There is not a particularly good way to apply much of this to the
+wireless interface on an AP as yet. FQ messes with wireless-n packet
+aggregation. That said, under home use with a limited number of user,
+SFQ+RED does seem to work pretty good.
+
+** Some QFQ related notes:
+*** QFQ can handle up to 32k bins
+
+Whether you are willing to wait for them to be generated is a better
+question.  How this interacts with bittorrent etc is also a good
+question. 512 is 4x as many bins as the old SFQ implementation.
+
+I have tested as many as 2048 bins, problems ensue with kernel
+memory allocation at various levels higher than that. 
+
+The 'bin creation' problem is why this code uses tc in batch mode. It
+used to take minutes to create the bins. Now, a split second.  (there
+was also a patch that helped this in 3.3)
+
+*** Various sub-qdiscs in QFQ
+
+I have tried pfifo_drop_head, SFB, and RED here.  All had bugs until
+3.3. And linux RED & SFB, being byte oriented, was often not good.
+pfifo_drop_head generates interesting results.
+
+The very new combination of REDSFQ which compensates for both bytes
+and packets is very interesting, as it combines everything we have
+learned in the past year into one single qdisc which can be brought up
+as a shaper in three lines of code.
+
+In other news:
+
+I have not tried the new 'adaptive red' implementation as a stand
+alone qdisc, nor revisited SFB in light about what I now know about
+GSO behavior.
+
+I would like to try QFQ and SFQ in combination to attempt to defeat
+the bittorrent problem at some point.
+
+*** Calculating a sane per-queue packet limit is an issue, too.
+
+iw10 requires a minimum of 10, and more likely 12 (fin, close) so...
+In places we arbitrarily double that, and wave hands.  I almost never
+see packet drop with 24, which is far, far better than 1000.  Might
+need to be larger on gigE+. Might be wrong headed entirely.
+
+** Multicast
+
+We try to maltreat multicast especially in the QFQ implementation. 
+
+When handed to a load balancing filter based on IPs, multicast
+addresses are all over the map.  It would be trivial to do a DOS with
+this multi-bin setup. So we toss all multicast into a single bin
+whenever possible. This is suboptimal, also. It would be good
+to get multicast into the VO queue on wireless but bugs exist.
+
+Multicast concerns me also when using SFQ on general purpose ethernet.
+
+** Default Bins
+
+You can do tricks with the DEFAULTB concept, creating a filter to
+optimize for ping, for example, which makes tests reproducable. (this
+is done for wshaper and QFQ) Another example would be to set aside
+bins for voip or dns, etc. Still, it is saner to just let the filter
+do all the work of finding a decent bin.
+
+The only sane purpose for DEFAULTB at the moment is to have a safe
+place to put QFQ packets until all the filters and bins are setup.
+
+* Other important debloat options
+
+There are many environment variables that can be set. Most
+notably - the QMODEL var has various forms of AQM/FQ/shaper available.
+
+Available QMODELS are qfq, sfq, sfqred, efq and various combinations
+thereof, as well as a hard coded 4mbit htb_sfq_red model, and emulations
+of the original wondershaper and a mildly improved one. See the 
+tail end of the code for what is available.
+
+Most work on either ethernet or wireless and try to deal with
+the problems of each.
+
+Usage of QFQ and the advanced SFQ options currently requires a new
+version of iproute2 and a Linux 3.3 kernel and some patches.
+
+A byte Queue limit enabled device driver is required for ethernet,
+except for when the HTB rate limiter is used.
+
+In all cases a Linux 3.3 or later kernel is required for best results.
