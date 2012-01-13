@@ -1,0 +1,7 @@
+#!/bin/sh
+for i in `seq 1 $1`
+do
+iperf -t 60 -w256k -c 172.30.50.1 &
+done
+iperf -t 55 -w256k -c 172.30.47.1
+

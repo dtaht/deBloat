@@ -1,0 +1,441 @@
+* Bidirectional tests
+
+I did some bidirectional tests. My basic concern in seeing
+iperf take 67 seconds to complete rather than 60 seconds is
+
+Did I build up 7 seconds of queue in the high volume streams?
+
+I mean, byte oriented red here...
+
+root@cruithne:~/git/deBloat/src# $TC -s qdisc show dev eth0
+qdisc htb 1: root refcnt 2 r2q 10 default 1 direct_packets_stat 0
+ Sent 130783919 bytes 93092 pkt (dropped 1, overlimits 177024 requeues 0) 
+ rate 1744bit 2pps backlog 0b 0p requeues 0 
+qdisc sfq 10: parent 1:1 limit 120p quantum 1514b depth 16 headdrop divisor 16384 
+ ewma 6 min 1500b max 18000b probability 0.12 ecn 
+ prob_mark 0 prob_mark_head 3223 prob_drop 0
+ forced_mark 0 forced_mark_head 0 forced_drop 0
+ Sent 130783919 bytes 93092 pkt (dropped 1, overlimits 3223 requeues 0) 
+ rate 1728bit 2pps backlog 0b 0p requeues 0 
+root@cruithne:~/git/deBloat/src# QDEBUG=1 IFACE=eth0 QMODEL=htb_sfq_red ./debloat 
+qdisc del dev eth0 root
+qdisc del dev eth0 ingress
+Cannot set device udp large send offload settings: Operation not supported
+qdisc add dev eth0 root handle 1: est 1sec 8sec htb default 1
+class add dev eth0 parent 1: classid 1:1 est 1sec 8sec htb rate 4Mbit mtu 1500 quantum 4500
+qdisc add dev eth0 parent 1:1 handle 10: est 1sec 4sec sfq limit 120 headdrop flows 64 divisor 16384 redflowlimit 40000 min 1500 max 18000 depth 16 probability 0.12 ecn
+
+root@cruithne:~/git/deBloat/src# iperf -t 60 -c 172.30.50.1
+------------------------------------------------------------
+Client connecting to 172.30.50.1, TCP port 5001
+TCP window size: 64.0 KByte (default)
+------------------------------------------------------------
+[  3] local 172.30.50.2 port 58500 connected with 172.30.50.1 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-60.5 sec  27.5 MBytes  3.81 Mbits/sec
+root@cruithne:~/git/deBloat/src# bc
+bc 1.06.95
+Copyright 1991-1994, 1997, 1998, 2000, 2004, 2006 Free Software Foundation, Inc.
+This is free software with ABSOLUTELY NO WARRANTY.
+For details type `warranty'. 
+3.81*1.05
+4.00
+root@cruithne:~/git/deBloat/src# ping l1
+PING l1 (172.30.47.27) 56(84) bytes of data.
+^C
+--- l1 ping statistics ---
+1 packets transmitted, 0 received, 100% packet loss, time 0ms
+
+* This is TCP_RR unloaded
+
+root@cruithne:~/git/deBloat/src# netperf -l 60 -t TCP_RR -H l1
+MIGRATED TCP REQUEST/RESPONSE TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo : first burst 0
+Local /Remote
+Socket Size   Request  Resp.   Elapsed  Trans.
+Send   Recv   Size     Size    Time     Rate         
+bytes  Bytes  bytes    bytes   secs.    per sec   
+
+65536  87380  1        1       60.00    3017.54   
+16384  87380 
+
+* This is TCP_MAERTS (a download) competing against 10 uploads. 
+
+There is 
+no policer in place, so it's 4Mbit up, 100Mbit down
+
+root@cruithne:~/git/deBloat/src# netperf -l 60 -t TCP_MAERTS -H l1
+MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    60.00      44.82   
+root@cruithne:~/git/deBloat/src# $TC -s qdisc show dev eth0
+qdisc htb 1: root refcnt 2 r2q 10 default 1 direct_packets_stat 0
+ Sent 206594190 bytes 430474 pkt (dropped 5, overlimits 479486 requeues 0) 
+ rate 570864bit 164pps backlog 0b 0p requeues 0 
+qdisc sfq 10: parent 1:1 limit 120p quantum 1514b depth 16 headdrop divisor 16384 
+ ewma 6 min 1500b max 18000b probability 0.12 ecn 
+ prob_mark 0 prob_mark_head 4884 prob_drop 0
+ forced_mark 0 forced_mark_head 0 forced_drop 0
+ Sent 206594190 bytes 430474 pkt (dropped 5, overlimits 4884 requeues 0) 
+ rate 63088bit 12pps backlog 0b 0p requeues 0 
+
+* TCP_STREAM against 10 iperfs to one machine, 1 against another -
+pure uploads:
+
+root@cruithne:~/git/deBloat/src# netperf -l 50 -t TCP_STREAM -H l1
+MIGRATED TCP STREAM TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  65536  65536    50.58       0.32   
+
+* 1 TCP_STREAM, pure upload
+
+root@cruithne:~/git/deBloat/src# netperf -l 50 -t TCP_STREAM -H l1
+MIGRATED TCP STREAM TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  65536  65536    50.03       3.80   
+root@cruithne:~/git/deBloat/src# $TC -s qdisc show dev eth0
+qdisc htb 1: root refcnt 2 r2q 10 default 1 direct_packets_stat 0
+ Sent 265013730 bytes 469600 pkt (dropped 7, overlimits 557201 requeues 0) 
+ rate 14944bit 3pps backlog 0b 0p requeues 0 
+qdisc sfq 10: parent 1:1 limit 120p quantum 1514b depth 16 headdrop divisor 16384 
+ ewma 6 min 1500b max 18000b probability 0.12 ecn 
+ prob_mark 1 prob_mark_head 6356 prob_drop 0
+ forced_mark 0 forced_mark_head 0 forced_drop 0
+ Sent 265013730 bytes 469600 pkt (dropped 7, overlimits 6357 requeues 0) 
+ rate 1968bit 2pps backlog 0b 0p requeues 0 
+
+* 1 TCP STREAM pure download
+
+root@cruithne:~/git/deBloat/src# netperf -l 50 -t TCP_MAERTS -H l1
+MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.00      92.48   
+root@cruithne:~/git/deBloat/src# netperf -l 50 -t TCP_MAERTS -H l1
+\MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.00      43.84   
+root@cruithne:~/git/deBloat/src# netperf -l 50 -t TCP_MAERTS -H l1 &
+[2] 8362
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+
+* 10 downloads
+
+root@cruithne:~/git/deBloat/src# netperf -l 50 -t TCP_MAERTS -H l1 &
+[3] 8363
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+netperf -l 50 -t TCP_MAERTS -H l1 &
+[4] 8364
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+netperf -l 50 -t TCP_MAERTS -H l1 &
+[5] 8365
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+netperf -l 50 -t TCP_MAERTS -H l1 &
+[6] 8366
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+netperf -l 50 -t TCP_MAERTS -H l1 &
+[7] 8367
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+netperf -l 50 -t TCP_MAERTS -H l1 &
+[8] 8369
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+netperf -l 50 -t TCP_MAERTS -H l1 &
+[9] 8370
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+netperf -l 50 -t TCP_MAERTS -H l1 &
+[10] 8371
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.01      13.36   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.01      11.30   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.01      10.84   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.01      10.70   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.01      10.66   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.01      10.69   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.00      10.79   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.00      11.00   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.00      11.48   
+
+[2]   Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[3]   Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[4]   Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[5]   Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[6]   Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[7]   Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[8]   Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[9]-  Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[10]+  Done                    netperf -l 50 -t TCP_MAERTS -H l1
+root@cruithne:~/git/deBloat/src# $TC -s qdisc show dev eth0
+qdisc htb 1: root refcnt 2 r2q 10 default 1 direct_packets_stat 0
+ Sent 130783919 bytes 93092 pkt (dropped 1, overlimits 177024 requeues 0) 
+ rate 1744bit 2pps backlog 0b 0p requeues 0 
+qdisc sfq 10: parent 1:1 limit 120p quantum 1514b depth 16 headdrop divisor 16384 
+ ewma 6 min 1500b max 18000b probability 0.12 ecn 
+ prob_mark 0 prob_mark_head 3223 prob_drop 0
+ forced_mark 0 forced_mark_head 0 forced_drop 0
+ Sent 130783919 bytes 93092 pkt (dropped 1, overlimits 3223 requeues 0) 
+ rate 1728bit 2pps backlog 0b 0p requeues 0 
+root@cruithne:~/git/deBloat/src# QDEBUG=1 IFACE=eth0 QMODEL=htb_sfq_red ./debloat 
+qdisc del dev eth0 root
+qdisc del dev eth0 ingress
+Cannot set device udp large send offload settings: Operation not supported
+qdisc add dev eth0 root handle 1: est 1sec 8sec htb default 1
+class add dev eth0 parent 1: classid 1:1 est 1sec 8sec htb rate 4Mbit mtu 1500 quantum 4500
+qdisc add dev eth0 parent 1:1 handle 10: est 1sec 4sec sfq limit 120 headdrop flows 64 divisor 16384 redflowlimit 40000 min 1500 max 18000 depth 16 probability 0.12 ecn
+
+* One upload with iperf
+
+root@cruithne:~/git/deBloat/src# iperf -t 60 -c 172.30.50.1
+------------------------------------------------------------
+Client connecting to 172.30.50.1, TCP port 5001
+TCP window size: 64.0 KByte (default)
+------------------------------------------------------------
+[  3] local 172.30.50.2 port 58500 connected with 172.30.50.1 port 5001
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0-60.5 sec  27.5 MBytes  3.81 Mbits/sec
+root@cruithne:~/git/deBloat/src# bc
+bc 1.06.95
+Copyright 1991-1994, 1997, 1998, 2000, 2004, 2006 Free Software Foundation, Inc.
+This is free software with ABSOLUTELY NO WARRANTY.
+For details type `warranty'. 
+3.81*1.05
+4.00
+
+* Repeat of TCP_RR
+
+root@cruithne:~/git/deBloat/src# netperf -l 60 -t TCP_RR -H l1
+MIGRATED TCP REQUEST/RESPONSE TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo : first burst 0
+Local /Remote
+Socket Size   Request  Resp.   Elapsed  Trans.
+Send   Recv   Size     Size    Time     Rate         
+bytes  Bytes  bytes    bytes   secs.    per sec   
+
+65536  87380  1        1       60.00    3017.54   
+16384  87380 
+
+* Repeat of TCP_MAERTS vs  single iperf stream 
+(1 upload vs one download)
+
+root@cruithne:~/git/deBloat/src# netperf -l 60 -t TCP_MAERTS -H l1
+MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    60.00      44.82   
+root@cruithne:~/git/deBloat/src# $TC -s qdisc show dev eth0
+qdisc htb 1: root refcnt 2 r2q 10 default 1 direct_packets_stat 0
+ Sent 206594190 bytes 430474 pkt (dropped 5, overlimits 479486 requeues 0) 
+ rate 570864bit 164pps backlog 0b 0p requeues 0 
+qdisc sfq 10: parent 1:1 limit 120p quantum 1514b depth 16 headdrop divisor 16384 
+ ewma 6 min 1500b max 18000b probability 0.12 ecn 
+ prob_mark 0 prob_mark_head 4884 prob_drop 0
+ forced_mark 0 forced_mark_head 0 forced_drop 0
+ Sent 206594190 bytes 430474 pkt (dropped 5, overlimits 4884 requeues 0) 
+ rate 63088bit 12pps backlog 0b 0p requeues 0 
+
+* One download during 11 uploads again
+root@cruithne:~/git/deBloat/src# netperf -l 50 -t TCP_STREAM -H l1
+MIGRATED TCP STREAM TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  65536  65536    50.58       0.32   
+root@cruithne:~/git/deBloat/src# netperf -l 50 -t TCP_STREAM -H l1
+MIGRATED TCP STREAM TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  65536  65536    50.03       3.80   
+
+* I don't remember what these were
+
+root@cruithne:~/git/deBloat/src# $TC -s qdisc show dev eth0
+qdisc htb 1: root refcnt 2 r2q 10 default 1 direct_packets_stat 0
+ Sent 265013730 bytes 469600 pkt (dropped 7, overlimits 557201 requeues 0) 
+ rate 14944bit 3pps backlog 0b 0p requeues 0 
+qdisc sfq 10: parent 1:1 limit 120p quantum 1514b depth 16 headdrop divisor 16384 
+ ewma 6 min 1500b max 18000b probability 0.12 ecn 
+ prob_mark 1 prob_mark_head 6356 prob_drop 0
+ forced_mark 0 forced_mark_head 0 forced_drop 0
+ Sent 265013730 bytes 469600 pkt (dropped 7, overlimits 6357 requeues 0) 
+ rate 1968bit 2pps backlog 0b 0p requeues 0 
+root@cruithne:~/git/deBloat/src# netperf -l 50 -t TCP_MAERTS -H l1
+MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.00      92.48   
+root@cruithne:~/git/deBloat/src# netperf -l 50 -t TCP_MAERTS -H l1
+\MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.00      43.84   
+
+* 10 Downloads vs vs 0 upload
+
+root@cruithne:~/git/deBloat/src# netperf -l 50 -t TCP_MAERTS -H l1 &
+[2] 8362
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+
+root@cruithne:~/git/deBloat/src# netperf -l 50 -t TCP_MAERTS -H l1 &
+[3] 8363
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+netperf -l 50 -t TCP_MAERTS -H l1 &
+[4] 8364
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+netperf -l 50 -t TCP_MAERTS -H l1 &
+[5] 8365
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+netperf -l 50 -t TCP_MAERTS -H l1 &
+[6] 8366
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+netperf -l 50 -t TCP_MAERTS -H l1 &
+[7] 8367
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+netperf -l 50 -t TCP_MAERTS -H l1 &
+[8] 8369
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+netperf -l 50 -t TCP_MAERTS -H l1 &
+[9] 8370
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+netperf -l 50 -t TCP_MAERTS -H l1 &
+[10] 8371
+root@cruithne:~/git/deBloat/src# MIGRATED TCP MAERTS TEST from 0.0.0.0 (0.0.0.0) port 0 AF_INET to l1 () port 0 AF_INET : demo
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.01      13.36   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.01      11.30   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.01      10.84   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.01      10.70   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.01      10.66   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.01      10.69   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.00      10.79   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.00      11.00   
+Recv   Send    Send                          
+Socket Socket  Message  Elapsed              
+Size   Size    Size     Time     Throughput  
+bytes  bytes   bytes    secs.    10^6bits/sec  
+
+ 87380  16384  16384    50.00      11.48   
+
+[2]   Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[3]   Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[4]   Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[5]   Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[6]   Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[7]   Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[8]   Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[9]-  Done                    netperf -l 50 -t TCP_MAERTS -H l1
+[10]+  Done                    netperf -l 50 -t TCP_MAERTS -H l1
+

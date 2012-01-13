@@ -688,7 +688,7 @@ end
 
 -- Eric's Enhanced SFQ 
 
--- FIXME: hard coded for 200Mbit
+-- FIXME: originally hard coded for 200Mbit
 -- I'm going to argue that depth, flows, speed all need to be
 -- done via something kleinrock-like. The problem is that 
 -- we don't know the delay without hitting the next hop
@@ -708,10 +708,13 @@ local function htb_sfq(speed,flows)
    qap("1:1 handle 10: est 1sec 8sec sfq limit 2000 depth 10 headdrop flows 1000 divisor 16384")
 end
 
-local function htb_sfq_red(speed,flows)
+-- Hard coded for specific test case for now of 4Mbit and closer to openwrt
+-- local function htb_sfq_red(speed,flows)
+
+local function htb_sfq_red(queues)
    qa("root handle 1: est 1sec 8sec htb default 1")
-   cap("1: classid 1:1 est 1sec 8sec htb rate 200Mbit mtu 1500 quantum 80000")
-   qap("1:1 handle 10: est 1sec 4sec sfq limit 3000 headdrop flows 512 divisor 16384 redflowlimit 100000 min 8000 max 60000 probability 0.20 ecn")
+   cap("1: classid 1:1 est 1sec 8sec htb rate 4Mbit mtu 1500 quantum 4500")
+   qap("1:1 handle 10: est 1sec 4sec sfq limit 120 headdrop flows 64 divisor 16384 redflowlimit 40000 min 1500 max 18000 depth 16 probability 0.12 ecn")
 end
 
 local function efq(parent, handle, speed, flows)
@@ -1118,6 +1121,7 @@ WCALLBACKS = { ["qfq"] = wireless_qfq,
 	       ["sfq"] = wireless_sfq,
 	       ["efq"] = wireless_efq,
 	       ["sfqred"] = wireless_efqr, 
+	       ["htb_sfq_red"] = unsupported_shaper,
 	       ["oopenwrt"] = unsupported_shaper, 
 	       ["owshaper"] = unsupported_shaper,
 	       ["wshaper"] = wireless_wshaper
@@ -1130,6 +1134,7 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["sfq"] = ethernet_sfq,
 	       ["efq"] = ethernet_efq,
 	       ["sfqred"] = ethernet_efqr,
+	       ["htb_sfq_red"] = htb_sfq_red,
 	       ["oopenwrt"] = oopenwrt,
 	       ["wshaper"] = wshaper,
 	       ["owshaper"] = owshaper,
