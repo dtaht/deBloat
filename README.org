@@ -1,8 +1,46 @@
 * Various scripts for less bufferbloated fair queuing, traffic shaping, etc
 
-The principal item of interest in this repository is the [[file:src/debloat]]
-script which incorporates everything I know about how to get reduced latencies under load on wireless and ethernet.
+The principal item of interest in this repository is the [[src/debloat]]
+lua script which incorporates everything I know about how to get reduced latencies under load on wireless and ethernet.
 
 * There are also tests and test results in the test dir
 
-All of varying quality
+All of varying quality. I'll get better about automating these over time.
+
+* Some thank yous
+
+My thanks to everyone in the debloating community for their hard work over
+the last year to address the bufferbloat issue. That list is far too long:
+
+Tom Herbert: Byte Queue Limits - which takes a big bite out of the bloat and help all the other algorithms work once again...
+
+Eric Dumazet: an unbelievable number of fixes and improvements to RED, ARED, SFB, SFQ, and a genuinely new combination of ideas in REDSFQ.
+
+Jon Corbet of LWN: For writing some of the most informative articles on the problem and keeping the community up to date.
+
+The linux 'netdev' mailing list - Notably Dave Miller and Steve Hemminger
+the linux-wireless mailing list - John Linville
+
+Jim Gettys, Van Jacobson, Kathie Nichols, Vint Cerf, John Nagle, and the huge list of researchers that developed some of the algorithms we've played with...
+
+Alcatel-lucent: for supporting jg on his quest....
+
+ISC.org and LINCS.fr : for their kind donations of hardware, rack space, offices, time and energy -
+
+Georgia Tech, Stanford, MIT, and a bunch of folk from various other universities around the world that I'll have to collect and post....
+
+The 150+ members of the bufferbloat.net wiki...
+The 300+ members of the bloat and cerowrt mailing lists...
+the 25+ standing members of the #bloat irc channel...
+
+Huge contributions from various members of the #openwrt irc channel - notably nbd, jow, travis, junos, swalker....
+
+Bob Cringley
+
+Slashdot and other publications
+
+ESR, Doc Searls, a whole bunch of bloggers credited elsewhere on the wiki (this very long list, I'll add you to this when I remember)
+
+For more about the bufferbloat problems (of which many, many remain to be solved) see: http://queue.acm.org/detail.cfm?id=2071893 and http://queue.acm.org/detail.cfm?id=2076798 -
+
+If I missed anybody, I'm sorry. But a big thank you for joining into brain amplification.
