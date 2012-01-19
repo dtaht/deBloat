@@ -805,6 +805,14 @@ local function htb_sfq_red(queues)
    qap("1:1 handle 10: est 1sec 4sec sfq limit 120 headdrop flows 64 divisor 16384 redflowlimit 40000 min 1500 max 18000 depth 16 probability 0.12 ecn")
 end
 
+-- I haven't backported REDSFQ to cerowrt yet
+
+local function htb_sfq_red_cero(queues)
+   qa("root handle 1: est 1sec 8sec htb default 1")
+   cap("1: classid 1:1 est 1sec 8sec htb rate 4Mbit mtu 1500 quantum 4500")
+   qap("1:1 handle 10: est 1sec 4sec sfq limit 120 perturb 60000")
+end
+
 local function efq(parent, handle, speed, flows)
    qap(sf("%s handle %x: est 1sec 8sec sfq limit 2000 depth 12 headdrop flows %d divisor 16384",
 	 parent,handle,flows))
@@ -1047,7 +1055,7 @@ end
 
 local function ethernet_efqr(queues)
 -- FIXME, we can do sane things with speed here
-	 qa("root handle %x: est 1sec 4sec sfq limit 300 headdrop flows %d divisor 16384 redflowlimit 70000 min 8000 max 60000 probability 0.20 ecn",10,150)
+	 qa("root handle %x: est 1sec 4sec sfq limit 300 headdrop perturb 60000 flows %d divisor 16384 redflowlimit 70000 min 8000 max 60000 probability 0.20 ecn",10,150)
 end
 
 -- FIXME: just stubs for now
@@ -1223,6 +1231,7 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["efq"] = ethernet_efq,
 	       ["sfqred"] = ethernet_efqr,
 	       ["htb_sfq_red"] = htb_sfq_red,
+	       ["htb_sfq_red_cero"] = htb_sfq_red_cero,
 	       ["oopenwrt"] = oopenwrt,
 	       ["wshaper"] = wshaper,
 	       ["owshaper"] = owshaper,
@@ -1282,7 +1291,6 @@ if env.QDEBUG then
 end
 
 -- FIXME - do something intelligent when faced with a bridge or vlan
-
 
 itype=interface_type(IFACE)
 

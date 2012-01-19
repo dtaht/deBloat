@@ -46,15 +46,16 @@ new tc utility is required there either. So if you were using either
 or both of these qdiscs, you should automagically see your life 
 improve...
 
-QFQ is too buggy prior to "3.3" to use.
+QFQ is also too buggy prior to "3.3" to use.
 
 More advanced SFQ options and REDSFQ and QFQ all require a patched
 version of TC. Also, most builds for the linux kernel do not
 enable QFQ by default. QFQ and SFQ are behaving competitively now
 in most circumstances, however.
 
-** Byte Queue Limits is supposed to have a rate limiter that works. 
+** Byte Queue Limits is optimized to "keep the hardware busy" 
 
+Which it does well, at speeds greater than a gigabit. 
 It is not very effective at less than 100Mbit. I get ~32k peak there
 and with GSO on, at 100Mbit, I have seen latency spikes of up to 70ms.
 
@@ -178,7 +179,7 @@ thereof, as well as a hard coded 4mbit htb_sfq_red model, and emulations
 of the original wondershaper and a mildly improved one. See the 
 tail end of the code for what is available.
 
-Most work on either ethernet or wireless and try to deal with
+Most work on both ethernet and wireless and try to deal with
 the problems of each.
 
 Usage of QFQ and the advanced SFQ options currently requires a new
