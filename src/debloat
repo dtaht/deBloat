@@ -819,7 +819,7 @@ local function efq(parent, handle, speed, flows)
 end
 
 local function efqr(parent, handle, speed, flows)
-   qap(sf("%s handle %x: est 1sec 4sec sfq limit 300 headdrop flows %d depth 12 divisor 16384 redflowlimit 40000 min 4500 max 18000 probability 0.20 ecn",parent,handle,flows))
+   qap("%s handle %x: est 1sec 4sec sfq limit 60 perturb 600 headdrop flows %d depth 24 divisor 16384 redflowlimit 40000 min 4500 max 18000 probability 0.20 ecn",parent,handle,flows)
 end
 
 function iptables4(...)
@@ -927,7 +927,7 @@ end
 -- Various models
 
 local function wireless_sfq()
-   wireless_setup("sfq")
+   wireless_setup("sfq limit 40 perturb 6000")
 end
 
 -- erics sfq and erics sfqred with 
