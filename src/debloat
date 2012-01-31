@@ -17,9 +17,9 @@
 
 params = { "MDISC", "BIGDISC", "NORMDISC", "BINS", "MAX_HWQ_BYTES", 
 	   "QMODEL", "FORCE_SPEED", "FORCE_RING", "QDEBUG", "VERBOSE",
-	   "UPLINK", "DOWNLINK", "IFACE", "SPEED", "DEPTH",
+	   "UPLINK", "DOWNLINK", "IFACE", "SPEED", "DEPTH", "DEBLOATLOG",
 	   "NAT", "NAT64", "CLAMP_MSS", "SYN_FLOOD", "MTU",
-	   "TC", "TCARG", "ETHTOOL", "INSMOD", "LSMOD", "IPTABLES",	
+	   "TC", "TCARG", "ETHTOOL", "INSMOD", "LSMOD", "IPTABLES",
 	   "IP6TABLES", "PINGOPT", "FLOWS", "TSO", "BURST", "IPV6",
 	   "NOPRIOHOSTSRC","NOPRIOHOSTDST","NOPRIOPORTSRC", 
 	   "NOPRIOPORTDST", "EST_MIN", "EST_MAX", "HEADDROP", "ECNMASK" }
@@ -43,7 +43,8 @@ env = { ["TC"] = "/sbin/tc",
 	["ECNMASK"] = 0xfc,
 	["EST_MIN"] = 1,
 	["EST_MAX"] = 4,
-	["IPV6"] = true
+	["IPV6"] = true,
+	["DEBLOATLOG"] = "/dev/null"
      }
 
 -- various shortcuts for commonly used functions
@@ -415,11 +416,11 @@ return ('ethernet')
 end
 
 local function ethtool_popen(...)
-   return popen(sf("%s %s",env.ETHTOOL,sf(...)),"r")
+   return popen(sf("%s %s 2>> %s",env.ETHTOOL,sf(...),env.DEBLOATLOG),"r")
 end
 
 local function ethtool(...)
-   exec(sf("%s %s",env.ETHTOOL,sf(...)))
+   exec(sf("%s %s 2>> %s",env.ETHTOOL,sf(...),env.DEBLOATLOG))
 end
 
 -- lua doesn't have a split function. Grr.
@@ -1259,7 +1260,7 @@ local function ethernet(model)
 end
 
 local function opentc()
-   return popen(sf("%s %s",env.TC,env.TCARG),'w')
+   return popen(sf("%s %s 2>> %s",env.TC, env.TCARG, env.DEBLOATLOG),'w')
 end
 
 -- It's annoying to get deletion as an error
@@ -1288,6 +1289,7 @@ end
 if env.QDEBUG then
    env.TC="/bin/cat"
    env.TCARG=" "
+   env.DEBLOATLOG="/tmp/debloat.log"
 end
 
 -- FIXME - do something intelligent when faced with a bridge or vlan
