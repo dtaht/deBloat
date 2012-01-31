@@ -269,7 +269,7 @@ function file_exists(name)
 end
 
 local function is_openwrt() 
-   if file_exists("/etc/openwrt-version") then 
+   if file_exists("/etc/uci-defaults") then 
       return true 
    else 
       return false 
