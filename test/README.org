@@ -76,3 +76,19 @@ that can reap or interrupt
   set datafile missing {"<string>"}
   fping uses '-' to show a missing value. I was going to convert stuff to infinity, but that is saner.
 
+* Ideas
+
+** Show the effects aggregation
+
+Aggregated packets tend to show bursty behavior. Do a capture of a high speed aggregated link
+and plot the resulting mountains.
+
+*** Needed
+
+GIGE card -> gigE link -> Wireless-N router -> Wireless-N laptop
+
+Turn off as much queue management as possible.
+
+Graph at least one streams inter-packet arrival times as a CDF.
+
+Might be better able to do it with UDP....

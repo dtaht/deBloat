@@ -1109,6 +1109,29 @@ local function uplink_to_red(uplink)
    
 end
 
+local function wireless_sfqr(queues)
+   --      local quantum = rate_quantum(up) -- convert to number
+      local quantum = rate_quantum(4000) 
+      local mtu = env.MTU
+--      local mtu = 1500
+
+-- trying to find an operating point that does useful stuff on
+-- wireless yet lets packet agg work better
+
+      local function red(parent,handle,prio,mark)
+	 qap("1:%x handle %x: sfq limit 120 headdrop perturb 60000 flows %d divisor 16384 quantum 4500 depth 24 redflowlimit 60000 min 18000 max 50000 probability 0.20 ecn harddrop", parent, handle, 2000)
+--	 qap("1:%x handle %x: sfq limit 120 headdrop perturb 60000 flows %d divisor 16384 quantum 4500 depth 24 redflowlimit 30000 min 6000 max 18000 probability 0.20 ecn harddrop", parent, handle, 2000)
+--	 fw_fap("1:",sf("1:%x",handle),prio,mark)
+      end
+      
+      qa("root handle 1: mq ")
+      red(1,10,1,1)
+      red(2,20,2,2)
+      red(3,30,3,3)
+      red(4,40,4,4)
+
+end
+
 local function fourtier(queues)
    if env.UPLINK ~= nil then
       local up=env.UPLINK
@@ -1285,6 +1308,7 @@ WCALLBACKS = { ["qfq"] = wireless_qfq,
 	       ["sfq"] = wireless_sfq,
 	       ["efq"] = wireless_efq,
 	       ["sfqred"] = wireless_efqr, 
+	       ["sfqr"] = wireless_sfqr, 
 	       ["htb_sfq_red"] = unsupported_shaper,
 	       ["oopenwrt"] = unsupported_shaper, 
 	       ["owshaper"] = unsupported_shaper,
