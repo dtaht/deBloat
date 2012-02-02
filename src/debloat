@@ -44,7 +44,8 @@ env = { ["TC"] = "/sbin/tc",
 	["EST_MIN"] = 1,
 	["EST_MAX"] = 4,
 	["IPV6"] = true,
-	["DEBLOATLOG"] = "/dev/null"
+	["DEBLOATLOG"] = "/dev/null",
+	["MTU"] = 1500
      }
 
 -- various shortcuts for commonly used functions
@@ -53,6 +54,8 @@ local sf=string.format
 local exec=os.execute
 local popen=io.popen
 local open=io.open
+
+-- FIXME, override above to redirect stderr
 
 VO=0x10; VI=0x20; BE=0x30; BK=0x40
 local WQUEUES = { BE, VO, VI, BK }
@@ -550,12 +553,21 @@ end
 
 function offloads(iface)
    local t = { }
-   for i,v in ipairs(tslurpc(sf("%s -k %s",env.ETHTOOL,iface))) do
-      local h = v:split(":")
-      local j = h[1]:split(" ")
-      if j[1] ~= "Offload" then
-	 t[h[1]:trim()] = h[2]:trim()
-	 -- FIXME: should probably change 'off' and 'on' to false and true
+   local s = tslurpc(sf("%s -k %s",env.ETHTOOL,iface))
+   if s ~= nil then
+      for i,v in ipairs(s) do
+	 if v == "no offload info available" then
+	    return nil
+	 end
+      end
+	 
+      for i,v in ipairs(s) do
+	 local h = v:split(":")
+	 local j = h[1]:split(" ")
+	 if j[1] ~= "Offload" then
+	    t[h[1]:trim()] = h[2]:trim()
+	    -- FIXME: should probably change 'off' and 'on' to false and true
+	 end
       end
    end
    return t
@@ -566,10 +578,14 @@ end
 
 function test_offloads(iface) 
    local o = offloads(iface)
-   for i,v in pairs(o) do
-      print(sf("%s %s",i,v))
+   if o ~= nil then
+      for i,v in pairs(o) do
+	 print(sf("%s %s",i,v))
+      end
    end
 end
+
+-- test_offloads("eth1")
 
 -- FIXME - could use a little more thought on creating the
 -- hash
@@ -1069,6 +1085,57 @@ local function ethernet_red(queues)
 	 qa("handle %x root red",10)
 end
 
+
+-- I don't know when a good time to have a larger quantum would be good
+
+local function rate_quantum(rate)
+   if rate < 10000 then return(1500) end
+   return(1500)
+end
+
+-- Proto all makes more sense maybe
+local function fw_fap(parent, class, v, pref)
+   local mask = 0xff
+-- tc filter add dev ge00 parent 1: prio 4 protocol ip handle 4/0xff fw flowid 1:40
+
+--   fap("%s protocol ip pref %d fw 0x%x/0x%x classid %s", parent,pref, v, mask, class )
+--   fap("%s protocol ipv6 pref %d fw 0x%x/0x%x classid %s", parent,pref, v, mask, class 
+   fap("%s protocol all pref %d handle %x/0x%x fw flowid %s", parent, pref, v, mask, class )
+end
+
+-- return min, max
+
+local function uplink_to_red(uplink)
+   
+end
+
+local function fourtier(queues)
+   if env.UPLINK ~= nil then
+      local up=env.UPLINK
+--      local quantum = rate_quantum(up) -- convert to number
+      local quantum = rate_quantum(4000) 
+      local est = sf("est %dsec %dsec", env.EST_MIN, env.EST_MAX)
+      local mtu = env.MTU
+--      local mtu = 1500
+
+      local function red(parent,handle,prio,mark)
+	 cap("1: classid 1:%x %s htb rate %skbit mtu %d quantum %d", 
+	     parent, est, up, mtu, quantum)
+	 qap("1:%x handle %x: %s sfq limit 200 headdrop perturb 60000 flows %d divisor 16384 depth 24 redflowlimit 40000 min 4500 max 9000 probability 0.20 ecn harddrop",
+	     parent, handle, est, 2000)
+	 fw_fap("1:",sf("1:%x",handle),prio,mark)
+      end
+      
+      qa("root handle 1: %s htb default 1", est)
+      red(1,10,1,1)
+      red(2,20,2,2)
+      red(3,30,3,3)
+      red(4,40,4,4)
+   end
+
+end
+
+
 -- Openwrt emulation
 -- The current openwrt shaper uses a combination of
 -- HFSC, SFQ, and RED
@@ -1221,7 +1288,9 @@ WCALLBACKS = { ["qfq"] = wireless_qfq,
 	       ["htb_sfq_red"] = unsupported_shaper,
 	       ["oopenwrt"] = unsupported_shaper, 
 	       ["owshaper"] = unsupported_shaper,
-	       ["wshaper"] = wireless_wshaper
+	       ["wshaper"] = wireless_wshaper,
+	       ["twotier"] = unsupported_shaper,
+	       ["fourtier"] = unsupported_shaper
 }
 
 ECALLBACKS = { ["qfq"] = ethernet_qfq, 
@@ -1236,6 +1305,9 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["oopenwrt"] = oopenwrt,
 	       ["wshaper"] = wshaper,
 	       ["owshaper"] = owshaper,
+	       ["owshaper"] = owshaper,
+	       ["twotier"] = twotier,
+	       ["fourtier"] = fourtier,
 }
 
 -- couple other models - dsl, wshaper, etc, needed
@@ -1260,7 +1332,7 @@ local function ethernet(model)
 end
 
 local function opentc()
-   return popen(sf("%s %s 2>> %s",env.TC, env.TCARG, env.DEBLOATLOG),'w')
+   return popen(sf("%s %s",env.TC, env.TCARG),'w')
 end
 
 -- It's annoying to get deletion as an error
