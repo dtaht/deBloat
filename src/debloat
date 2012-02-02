@@ -292,11 +292,25 @@ end
 local function getconf()
 end
 
+-- getenv pulls in everything as strings, 
+-- so do the conversion here
+
+local function fromenv(v)
+   local s = os.getenv(v)
+   if s == nil then return nil end
+-- FIXME allow .
+   local m = string.match(s,"^%d+") 
+   if m ~= nil then return tonumber(s) end
+   if s == "true" then return true end
+   if s == "false" then return false end
+   return s
+end
+
 -- From the possible parameters in t, override o
 
 local function getenvs(t,o)
    for i,v in pairs(t) do
-      local s = os.getenv(v)
+      local s = fromenv(v)
       if s ~= nil then o[v] = s end
    end
    return o
@@ -1119,7 +1133,7 @@ local function wireless_sfqr(queues)
 -- wireless yet lets packet agg work better
 
       local function red(parent,handle,prio,mark)
-	 qap("1:%x handle %x: sfq limit 120 headdrop perturb 60000 flows %d divisor 16384 quantum 4500 depth 24 redflowlimit 60000 min 18000 max 50000 probability 0.20 ecn harddrop", parent, handle, 2000)
+	 qap("1:%x handle %x: sfq limit 120 headdrop perturb 60000 flows %d divisor 16384 quantum 3000 depth 24 redflowlimit 60000 min 18000 max 50000 probability 0.20 ecn harddrop", parent, handle, 2000)
 --	 qap("1:%x handle %x: sfq limit 120 headdrop perturb 60000 flows %d divisor 16384 quantum 4500 depth 24 redflowlimit 30000 min 6000 max 18000 probability 0.20 ecn harddrop", parent, handle, 2000)
 --	 fw_fap("1:",sf("1:%x",handle),prio,mark)
       end
@@ -1135,8 +1149,8 @@ end
 local function fourtier(queues)
    if env.UPLINK ~= nil then
       local up=env.UPLINK
---      local quantum = rate_quantum(up) -- convert to number
-      local quantum = rate_quantum(4000) 
+      local quantum = rate_quantum(up) -- convert to number
+--      local quantum = rate_quantum(4000) 
       local est = sf("est %dsec %dsec", env.EST_MIN, env.EST_MAX)
       local mtu = env.MTU
 --      local mtu = 1500
