@@ -850,7 +850,7 @@ local function efq(parent, handle, speed, flows)
 end
 
 local function efqr(parent, handle, speed, flows)
-   qap("%s handle %x: est 1sec 4sec sfq limit 60 perturb 600 headdrop flows %d depth 24 divisor 16384 redflowlimit 40000 min 4500 max 18000 probability 0.20 ecn",parent,handle,flows)
+   qap("%s handle %x: est 1sec 4sec sfq limit 200 quantum 3000 perturb 600 headdrop flows %d depth 24 divisor 16384 redflowlimit 40000 min 4500 max 18000 probability 0.20 ecn",parent,handle,flows)
 end
 
 function iptables4(...)
@@ -872,6 +872,49 @@ function recreate_filter(t)
    iptables(sf("-t %s -F %s", t.table, t.chain))
    iptables(sf("-t %s -X %s", t.table,t.chain))
    iptables(sf("-t %s -N %s", t.table,t.chain))
+end
+
+
+-- Builds up a list of iptables commands to flush the qos_* chains,
+-- remove rules referring to them, then delete them
+
+-- Print rules in the mangle table, like iptables-save
+-- Find rules for the qos_* chains
+-- Exclude rules in qos_* chains (inter-qos_* refs)
+      -- Replace -N with -X and hold, with -F and print
+-- Replace -A with -D
+-- Print held lines at the end (note leading newline)
+-- Make into proper iptables calls
+-- Note:  awkward in previous call due to hold space usage
+-- Magic borrowed from openwrt generate.sh
+
+function iptables_aqm_clean() 
+   tstr="-t mangle -S | grep '^-N qos_\|-j qos_' | grep -v '^-A qos_' | sed -e '/^-N/{s/^-N/-X/;H;s/^-X/-F/}' -e 's/^-A/-D/' -e '${p;g}' | sed -n -e 's/^./iptables -t mangle &/p'"
+   iptables(tstr)
+end
+
+-- ${iptrules:+${iptrules}${N}iptables -t mangle -A qos_${cg}_ct -j CONNMARK --save-mark --mask 0xff}
+-- iptables -t mangle -A qos_${cg} -j CONNMARK --restore-mark --mask 0xff
+-- iptables -t mangle -A qos_${cg} -m mark --mark 0/0xff -j qos_${cg}_ct
+-- $pktrules
+-- $up$N${down:+${down}$N}
+
+FW_PREREQ = { "ipt_multiport", "ipt_CONNMARK" }
+DL_PREREQ = { "cls_u32", "em_u32", "act_connmark", "act_mirred", "sch_ingress" }
+OWRT_PREREQ = { "cls_fw", "sch_hfsc","sch_sfq", "sch_red" }
+
+function iptm(...)
+   iptables(sf("-t mangle %s", sf(...)))
+end
+
+function aqm_init(cg)
+   iptm("-N qos_%s",cg)
+   iptm("-N qos_%s_ct",cg)
+   iptm("-A qos_%s_ct -j CONNMARK --save-mark --mask 0xff",cg)
+   iptm("-A qos_%s -j CONNMARK --restore-mark --mask 0xff",cg)
+   iptm("-A qos_%s -m mark --mark 0/0xff -j qos_%s_ct",cg,cg)
+-- $pktrules
+-- $up$N${down:+${down}$N}
 end
 
 local function mcast_classify(chain,class) 
@@ -1099,7 +1142,6 @@ local function ethernet_red(queues)
 	 qa("handle %x root red",10)
 end
 
-
 -- I don't know when a good time to have a larger quantum would be good
 
 local function rate_quantum(rate)
@@ -1177,8 +1219,25 @@ end
 -- The current openwrt shaper uses a combination of
 -- HFSC, SFQ, and RED
 
+function tcrules(cstr,rate) 
+   dir="/usr/lib/aqm"
+   if file(sf("%s/tcrules.awk")) then
+      spewc(sf("awk -v device=\"%s\" -v linespeed=\"%s\" -f %s/tcrules.awk",env.IFACE,rate,dir), cstr)
+   end
+end
+
 function oopenwrt(queues)
+   if env.UPLINK == nil or env.DOWNLINK == nil then
+      usage("UPLINK and DOWNLINK environment variables are required")
+   end
+   local ul = env.UPLINK
+   qa("root handle 1: hfsc default 3")
+   cap("1: classid 1:1 hfsc sc rate %dkbit ul rate %dkbit",ul,ul)
    usage("Not complete yet")
+   if env.DOWNLOAD then
+      qa("ingress")
+      fap("ffff: protocol ip prio 1 u32 match u32 0 0 flowid 1:1 action connmark action mirred egress redirect dev ifb%d",ifbdev,n) 
+   end
 end
 
 -- Wondershaper emulation
@@ -1208,6 +1267,7 @@ local function wshaper(queues)
 
    local UPLINK = env.UPLINK
    local DOWNLINK = env.DOWNLINK
+   local v6 = env.IPV6
 
    qa("root handle 1: htb default 20")
 
@@ -1235,8 +1295,6 @@ local function wshaper(queues)
 
    pingopt("1:0","1:10")
 
--- There is no IPv6 support in old wondershaper
-
 -- This is just so wrong in so many cases:
 
 -- To speed up downloads while an upload is going on, put ACK packets
@@ -1248,12 +1306,19 @@ fap([[1: protocol ip prio 10 u32 \
 	       match u16 0x0000 0xffc0 at 2 \
 	       match u8 0x10 0xff at 33 flowid 1:10]])
 
+-- There is no IPv6 support in old wondershaper
+-- FIXME - figure out how to find acks in ipv6
+
 -- some traffic however suffers a worse fate
 
 local function np(args,prio,match,h)
    for i,v in pairs(args:split(" ")) do
    fap("1: protocol ip prio %d u32 \
         match ip %s %s %s flowid 1:30",prio,match,v, h)
+   if v6 then
+--   fap("1: protocol ipv6 prio %d u32 \
+--        match ip %s %s %s flowid 1:30",prio,match,v, h)
+   end
    end
 end
 
