@@ -328,7 +328,7 @@ BINS=env.BINS
 MULTICAST=BINS+1
 DEFAULTB=BINS+2
 
-PREREQS = { "sch_qfq", "cls_u32", "cls_flow", "sch_sfq", "sch_red", "sch_htb" }
+PREREQS = { "sch_qfq", "cls_u32", "cls_flow", "sch_sfq", "sch_red", "sch_htb", "cls_fw" }
 
 -- we can get more complex later
 
@@ -658,6 +658,11 @@ end
 
 local function speed_get(iface) 
    return slurpf(sf("/sys/class/net/%s/speed",iface)) 
+end
+
+local function rate_quantum(rate)
+   if rate < 10000 then return(1500) end
+   return(1500)
 end
 
 -- Doing this as a lookup table hurt lua
@@ -1037,9 +1042,8 @@ local function sfqred_ingress()
 --       tc:write(sf("filter add dev %s parent 1: protocol ip prio 2 u32 match ip src %s flowid 1:1\n", IFB, privnet))
 -- end
 
-   tc:write(sf("filter add dev %s parent 1: protocol ip prio 2 u32 match ip protocol 0 0x00 flowid 1:11\n", IFB))
+   tc:write(sf("filter add dev %s parent 1: protocol all prio 2 u32 match ip protocol 0 0x00 flowid 1:11\n", IFB))
 end
-
 
 -- Various models
 
@@ -1083,6 +1087,21 @@ local function model_qfq_subdisc(base)
    fa_mcast(base); 
    q_bins(base);
    fa_bins(base); 
+end
+
+local function htb_qfq_drop_head(queues)
+   if env.UPLINK ~= nil then
+      local up=env.UPLINK
+      local quantum = rate_quantum(up)
+      local est = sf("est %dsec %dsec", env.EST_MIN, env.EST_MAX)
+      local mtu = env.MTU
+
+   qa("root handle 1: est 1sec 8sec htb default 1")
+   cap("1: classid 1:1 est 1sec 8sec htb rate %dkbit mtu 1500 quantum 1500",up)
+   qap("1:1 handle %x qfq",10)
+   model_qfq_subdisc(10)
+
+   end
 end
 
 -- FIXME: Finish this up
@@ -1187,10 +1206,6 @@ end
 
 -- I don't know when a good time to have a larger quantum would be good
 
-local function rate_quantum(rate)
-   if rate < 10000 then return(1500) end
-   return(1500)
-end
 
 -- Proto all makes more sense maybe
 local function fw_fap(parent, class, v, pref)
@@ -1241,7 +1256,7 @@ local function fourtier(queues)
 
 -- just straight sfq
 
-      local function red(parent,handle,prio,mark)
+      local function red4(parent,handle,prio,mark)
 	 cap("1: classid 1:%x %s htb rate %skibit mtu %d mpu 64 quantum %d", 
 	     parent, est, up, mtu, quantum)
 	 qap("1:%x handle %x: %s sfq limit 200",
@@ -1251,7 +1266,7 @@ local function fourtier(queues)
 
 -- Hammered down on the defaults
 
-      local function red3(parent,handle,prio,mark)
+      local function red(parent,handle,prio,mark)
 	 cap("1: classid 1:%x %s htb rate %skibit mtu %d mpu 64 quantum %d", 
 	     parent, est, up, mtu, quantum)
 	 qap("1:%x handle %x: %s sfq limit 200 headdrop quantum 1524 perturb 60000 flows %d divisor 16384 depth 24 redflowlimit 9000 min 1500 max 4500 probability 0.20 ecn harddrop",
@@ -1276,10 +1291,7 @@ local function fourtier(queues)
       red(4,40,4,4)
       if env.DOWNLINK ~= nil and env.INGRESS ~= nil then sfqred_ingress() end
    end
-
-
 end
-
 
 -- Openwrt emulation
 -- The current openwrt shaper uses a combination of
@@ -1469,6 +1481,7 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["sfq"] = ethernet_sfq,
 	       ["efq"] = ethernet_efq,
 	       ["sfqred"] = ethernet_efqr,
+	       ["htb_qfq_drop_head"] = htb_qfq_drop_head,
 	       ["htb_sfq_red"] = htb_sfq_red,
 	       ["htb_sfq_red_cero"] = htb_sfq_red_cero,
 	       ["oopenwrt"] = oopenwrt,
