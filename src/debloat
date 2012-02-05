@@ -339,6 +339,10 @@ PREREQS2 = {
    ["ared"] = { "sch_qfq", "sch_red", "cls_u32", "cls_flow" }
 }
 
+local function opentc()
+   return popen(sf("%s %s",env.TC, env.TCARG),'w')
+end
+
 -- FIXME: Merge multiple tables into one table on values in first
 -- return table
 
@@ -1010,10 +1014,13 @@ local function sfqred_ingress()
       kernel_prereqs({"sch_ingress","sch_cbq","act_mirred","cls_fw"})
       IFB="ifb0"
       ALLOT=1524 -- not needed?
+      tc2 = opentc()
+      
       qa("ingress")
       fap("ffff: protocol all u32 match u32 0 0 flowid 1:1 action mirred egress redirect dev %s",IFB)
     -- Lets say our NIC is 100Mbit
-    tc:write(sf("qdisc del dev %s root\n",IFB))
+    tc2:write(sf("qdisc del dev %s root\n",IFB))
+    tc2:close()
     tc:write(sf("qdisc add dev %s root handle 1: cbq avpkt 1000 rate 100Mbit bandwidth 100Mbit\n",IFB))
 -- FIXME: allocate bandwidth from underlying interface
     tc:write(sf("class add dev %s parent 1: classid 1:1 cbq allot 1524 mpu 64 rate 100Mbit prio 1 bandwidth 100Mbit maxburst 150 avpkt 1500 bounded\n", IFB))
@@ -1493,9 +1500,6 @@ local function ethernet(model)
    return nil
 end
 
-local function opentc()
-   return popen(sf("%s %s",env.TC, env.TCARG),'w')
-end
 
 -- It's annoying to get deletion as an error
 -- And confusing to the user
