@@ -1007,7 +1007,7 @@ end
 local function sfqred_ingress()
       RATE=env.DOWNLINK
       if RATE == nil then return end
-      insmod({"sch_ingress","sch_cbq","act_mirred"})
+      kernel_prereqs({"sch_ingress","sch_cbq","act_mirred","cls_fw"})
       IFB="ifb0"
       ALLOT=1524 -- not needed?
       qa("ingress")
