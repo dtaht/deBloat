@@ -1111,6 +1111,37 @@ local function one_over_ip(base)
    faip_bins(base); 
 end
 
+-- DRR
+
+-- Choke
+
+local function choke(queues)
+   kernel_prereqs({"sch_choke"})
+   if env.UPLINK ~= nil then
+      local up=env.UPLINK
+      local quantum = rate_quantum(up)
+      local est = sf("est %dsec %dsec", env.EST_MIN, env.EST_MAX)
+      local mtu = env.MTU
+   qa("root handle 1: choke bandwidth %dkbit limit 64 min 4 max 12 ecn", up)
+   end
+
+end
+
+local function htb_choke(queues)
+   kernel_prereqs({"sch_choke", "sch_htb"})
+   if env.UPLINK ~= nil then
+      local up=env.UPLINK
+      local quantum = rate_quantum(up)
+      local est = sf("est %dsec %dsec", env.EST_MIN, env.EST_MAX)
+      local mtu = env.MTU
+      qa("root handle 1: %s htb default 1", est)
+      cap("1: classid 1:1 %s htb burst 64 rate %dkibit mtu 1500 mpu 64 quantum 1500", est, up) 
+      qap("1:1 handle 10: choke bandwidth %dkbit limit 64 min 4 max 12 ecn", up)
+    end
+end
+
+-- SFB
+
 local function sfb(queues)
    kernel_prereqs({"sch_sfb"})
    qa("root handle 1: sfb")
@@ -1558,6 +1589,8 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["htb_sfq_red_cero"] = htb_sfq_red_cero,
 	       ["tbf"] = tbf,
 	       ["htb_sfb"] = htb_sfb,
+	       ["choke"] = choke,
+	       ["htb_choke"] = htb_choke,
 	       ["sfb"] = sfb,
 	       ["oopenwrt"] = oopenwrt,
 	       ["wshaper"] = wshaper,
