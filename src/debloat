@@ -21,6 +21,7 @@ params = { "MDISC", "BIGDISC", "NORMDISC", "BINS", "MAX_HWQ_BYTES",
 	   "NAT", "NAT64", "CLAMP_MSS", "SYN_FLOOD", "MTU", "INGRESS",
 	   "TC", "TCARG", "ETHTOOL", "INSMOD", "LSMOD", "IPTABLES",
 	   "IP6TABLES", "PINGOPT", "FLOWS", "TSO", "BURST", "IPV6",
+	   "OVERHEAD", "LINKLAYER", "MPU", "PPPOE", "ADSL",
 	   "NOPRIOHOSTSRC","NOPRIOHOSTDST","NOPRIOPORTSRC", 
 	   "NOPRIOPORTDST", "EST_MIN", "EST_MAX", "HEADDROP", "ECNMASK" }
 
@@ -44,6 +45,7 @@ env = { ["TC"] = "/sbin/tc",
 	["EST_MIN"] = 1,
 	["EST_MAX"] = 4,
 	["IPV6"] = true,
+	["LINKLAYER"] = "ethernet",
 	["DEBLOATLOG"] = "/dev/null",
 	["MTU"] = 1500
      }
@@ -512,6 +514,49 @@ function kleinrock(bandwidth, delay, flows)
    return round(math.sqrt(flows)*bandwidth*delay)
 end
 
+local function lowrate(rate)
+   if rate < 15000 then return true else return false end
+end
+
+-- Don't like these side effects
+
+local function htb_est() 
+   s = " "
+   if env.PPPOE then env.OVERHEAD=40 end
+   if env.ADSL then env.LINKLAYER="adsl" end
+   if lowrate(env.UPLINK) then env.R2Q=1 end
+end
+
+-- ADSL overhead calculation for htb
+
+local function overhead(rate)
+   local s = " "
+   if env.OVERHEAD then s = s .. "OVERHEAD=" .. OVERHEAD .. " " end
+   if env.LINKLAYER then s = s .. "LINKLAYER=" .. env.LINKLAYER .. " " end
+   if lowrate(rate) then s = s .. "R2Q=1 " end
+   return(s)
+end
+
+
+-- Some htb info that is probably hopelessly out of date
+
+-- Counting packets with quantum can be strange. If we have a low rate
+-- class (rate = 5kbit), default quantum = 5000 / 10 = 500 bytes. But
+-- most packets are more then 500 bytes. Htb version 1 and 2 uses DRR,
+-- so a packet larger then 1000 bytes will be sent and it will
+-- remember how much it sent and wait until the packet is paid back
+-- before another packet is send. So if you send 1000 byte, next time
+-- the class is polled, you will not be allowed to send.
+
+-- Htb3 uses the WRR scheduler. When a packet with size > quantum is
+-- sent, it will be sent and an error that the quantum is too small
+-- will be logged. But there is no pay back. The WRR scheduler is
+-- faster then the DRR scheduler. So make sure quantum is bigger then
+-- the default packet size. For 15 kbyte/s and default r2q, quantum is
+-- 1500 and this is exactly the maximum packet size. If you want to
+-- tune htb for rates smaller then 15 kbyte/s, you can manually set
+-- the r2q and/or quantum.
+
 -- FIXME:
 -- We want to capture the characteristics of
 -- the interface in a table.
@@ -779,11 +824,12 @@ local function fa_defb(parent)
 end
 
 -- FIXME: This needs a correct hash for natted sources when NAT=y and ipv6
+-- handle 3 repeated bad?
 
 local function fa_bins(parent)
 if env.NAT then
    fap("%x: handle 3 protocol ipv6 prio 94 flow hash keys proto-dst,rxhash divisor %d",parent,env.BINS)
-   fap("%x: handle 3 protocol all prio 97 flow hash keys proto-dst,nfct-src divisor %d",parent,env.BINS)
+   fap("%x: handle 4 protocol all prio 97 flow hash keys proto-dst,nfct-src divisor %d",parent,env.BINS)
 else
    fap("%x: handle 3 protocol all prio 97 flow hash keys proto-dst,rxhash divisor %d",parent,env.BINS)
 end
@@ -795,7 +841,7 @@ end
 local function faip_bins(parent)
 if env.NAT then
    fap("%x: handle 3 protocol ipv6 prio 94 flow hash keys src divisor %d",parent,env.BINS)
-   fap("%x: handle 3 protocol all prio 97 flow hash keys nfct-src divisor %d",parent,env.BINS)
+   fap("%x: handle 4 protocol all prio 97 flow hash keys nfct-src divisor %d",parent,env.BINS)
 else
    fap("%x: handle 3 protocol all prio 97 flow hash keys src divisor %d",parent,env.BINS)
 end
@@ -1118,6 +1164,41 @@ local function one_over_ip(base)
 end
 
 -- DRR
+
+local function drr(queues)
+   kernel_prereqs({"sch_drr"})
+   qa("root handle 1: drr")
+   cap("1: classid 1:%x drr",env.BINS+1)
+   cap("1: classid 1:%x drr",env.BINS+2)
+   qap("1:%x pfifo_head_drop limit 16",env.BINS+1)
+   qap("1:%x pfifo_head_drop limit 16",env.BINS+2)
+   fa_defb(1)
+   fa_mcast(1)
+   for i=1,env.BINS do
+      cap("1: classid 1:%x drr",i)
+      qap("1:%x pfifo_head_drop limit 16",i)
+   end
+   fap("%x: handle 10 protocol all prio 10 flow hash keys proto-src,dst divisor %d perturb 10", 1, env.BINS);
+end
+
+-- tc qdisc add dev eth0 handle 1 root drr
+-- tc class add dev eth0 parent 1: classid 1:1 drr
+-- tc class add dev eth0 parent 1: classid 1:2 drr
+
+--     You also need to add at least one filter to classify packets.
+
+-- tc filter add dev eth0 protocol all classid 1:1
+
+--       tc qdisc add dev .. drr
+
+--      for i in .. 1024;do
+--            tc class add dev .. classid $handle:$(print %x $i)
+--           tc qdisc add dev .. fifo limit 16
+--      done
+
+--      tc  filter  add  ..   protocol   ip   ..   $handle   flow   hash   keys
+--      src,dst,proto,proto-src,proto-dst divisor 1024 perturb 10
+
 
 -- Choke
 
@@ -1614,6 +1695,7 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["htb_choke"] = htb_choke,
 	       ["htb_qfq_choke"] = htb_qfq_choke,
 	       ["sfb"] = sfb,
+	       ["drr"] = drr,
 	       ["oopenwrt"] = oopenwrt,
 	       ["wshaper"] = wshaper,
 	       ["owshaper"] = owshaper,
@@ -1643,6 +1725,13 @@ local function ethernet(model)
    return nil
 end
 
+function ingress()
+   if env.INGRESS then
+   local tc = opentc()
+   tc:write(sf("qdisc del dev %s ingress\n",IFACE))
+   tc:close()
+   end
+end
 
 -- It's annoying to get deletion as an error
 -- And confusing to the user
@@ -1651,9 +1740,7 @@ function resettc()
    local tc=opentc()
    tc:write(sf("qdisc del dev %s root\n",IFACE))
    tc:close()
-   tc = opentc()
-   tc:write(sf("qdisc del dev %s ingress\n",IFACE))
-   tc:close()
+   ingress()
    return opentc()
 end
 
