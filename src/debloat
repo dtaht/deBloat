@@ -1111,6 +1111,24 @@ local function one_over_ip(base)
    faip_bins(base); 
 end
 
+local function sfb(queues)
+   kernel_prereqs({"sch_sfb"})
+   qa("root handle 1: sfb")
+end
+
+local function htb_sfb(queues)
+   kernel_prereqs({"sch_sfb","sch_htb"})
+   if env.UPLINK ~= nil then
+      local up=env.UPLINK
+      local quantum = rate_quantum(up)
+      local est = sf("est %dsec %dsec", env.EST_MIN, env.EST_MAX)
+      local mtu = env.MTU
+      qa("root handle 1: %s htb default 1", est)
+      cap("1: classid 1:1 %s htb burst 64 rate %dkibit mtu 1500 mpu 64 quantum 1500", est, up)
+      qap("1:1 handle 10: sfb limit 40")
+   end
+end
+
 local function tbf(queues)
    kernel_prereqs({"sch_sfq","sch_qfq"})
    if env.UPLINK ~= nil then
@@ -1119,7 +1137,7 @@ local function tbf(queues)
       local est = sf("est %dsec %dsec", env.EST_MIN, env.EST_MAX)
       local mtu = env.MTU
 
-   qa("root handle 1: est 1sec 2sec tbf rate %dkbit burst 5k latency 5ms minburst 1540", up)
+   qa("root handle 1: %s tbf rate %dkbit burst 5k latency 5ms minburst 1540", est, up)
    end
 end
 
@@ -1539,6 +1557,8 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["htb_sfq_red"] = htb_sfq_red,
 	       ["htb_sfq_red_cero"] = htb_sfq_red_cero,
 	       ["tbf"] = tbf,
+	       ["htb_sfb"] = htb_sfb,
+	       ["sfb"] = sfb,
 	       ["oopenwrt"] = oopenwrt,
 	       ["wshaper"] = wshaper,
 	       ["owshaper"] = owshaper,
