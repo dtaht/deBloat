@@ -1093,6 +1093,7 @@ end
 -- schemes are consistent enough to tie everything together
 -- sanely...
 
+
 local function model_qfq_subdisc(base)
    cb(base,MULTICAST,env.MDISC)
    cb(base,DEFAULTB,env.NORMDISC)
@@ -1100,6 +1101,11 @@ local function model_qfq_subdisc(base)
    fa_mcast(base); 
    q_bins(base);
    fa_bins(base); 
+end
+
+local function model_choke_subdisc(base)
+   env.BIGDISC=sf("choke bandwidth %dkbit limit 64 min 4 max 12 ecn",env.UPLINK)
+   model_qfq_subdisc(base)
 end
 
 local function one_over_ip(base)
@@ -1202,6 +1208,21 @@ local function htb_qfq_drop_head(queues)
    cap("1: classid 1:1 est 1sec 8sec htb rate %dkbit mtu 1500 quantum 1500",up)
    qap("1:1 handle %x qfq",10)
    model_qfq_subdisc(10)
+
+   end
+end
+
+local function htb_qfq_choke(queues)
+   if env.UPLINK ~= nil then
+      local up=env.UPLINK
+      local quantum = rate_quantum(up)
+      local est = sf("est %dsec %dsec", env.EST_MIN, env.EST_MAX)
+      local mtu = env.MTU
+
+   qa("root handle 1: est 1sec 8sec htb default 1")
+   cap("1: classid 1:1 est 1sec 8sec htb rate %dkbit mtu 1500 quantum 1500",up)
+   qap("1:1 handle %x qfq",10)
+   model_choke_subdisc(10)
 
    end
 end
@@ -1591,6 +1612,7 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["htb_sfb"] = htb_sfb,
 	       ["choke"] = choke,
 	       ["htb_choke"] = htb_choke,
+	       ["htb_qfq_choke"] = htb_qfq_choke,
 	       ["sfb"] = sfb,
 	       ["oopenwrt"] = oopenwrt,
 	       ["wshaper"] = wshaper,
