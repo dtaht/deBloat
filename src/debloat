@@ -782,14 +782,27 @@ end
 
 local function fa_bins(parent)
 if env.NAT then
-   fap("%x: handle 3 protocol ipv6 prio 94 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
-   fap("%x: handle 3 protocol all prio 97 flow hash keys proto-dst,nfct-src divisor %d",parent,BINS)
+   fap("%x: handle 3 protocol ipv6 prio 94 flow hash keys proto-dst,rxhash divisor %d",parent,env.BINS)
+   fap("%x: handle 3 protocol all prio 97 flow hash keys proto-dst,nfct-src divisor %d",parent,env.BINS)
 else
-   fap("%x: handle 3 protocol all prio 97 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
+   fap("%x: handle 3 protocol all prio 97 flow hash keys proto-dst,rxhash divisor %d",parent,env.BINS)
 end
 pingopt(sf("%x:",parent),sf("%x:%x",parent,DEFAULTB))
 -- At one point I was trying to handle ipv6 separately
--- fa("protocol ipv6 parent %x: handle 4 prio 98 flow hash keys proto-dst,rxhash divisor %d",parent,BINS)
+-- fa("protocol ipv6 parent %x: handle 4 prio 98 flow hash keys proto-dst,rxhash divisor %d",parent,env.BINS)
+end
+
+local function faip_bins(parent)
+if env.NAT then
+   fap("%x: handle 3 protocol ipv6 prio 94 flow hash keys src divisor %d",parent,env.BINS)
+   fap("%x: handle 3 protocol all prio 97 flow hash keys nfct-src divisor %d",parent,env.BINS)
+else
+   fap("%x: handle 3 protocol all prio 97 flow hash keys src divisor %d",parent,env.BINS)
+end
+
+pingopt(sf("%x:",parent),sf("%x:%x",parent,DEFAULTB))
+-- At one point I was trying to handle ipv6 separately
+-- fa("protocol ipv6 parent %x: handle 4 prio 98 flow hash keys proto-dst,rxhash divisor %d",parent,env.BINS)
 end
 
 local function q_bins(parent)
@@ -1087,6 +1100,34 @@ local function model_qfq_subdisc(base)
    fa_mcast(base); 
    q_bins(base);
    fa_bins(base); 
+end
+
+local function one_over_ip(base)
+   cb(base,MULTICAST,env.MDISC)
+   cb(base,DEFAULTB,env.NORMDISC)
+   fa_defb(base)
+   fa_mcast(base); 
+   q_bins(base);
+   faip_bins(base); 
+end
+
+local function htb_qfq_sfqred(queues)
+   kernel_prereqs({"sch_sfq","sch_qfq"})
+   if env.UPLINK ~= nil then
+      local up=env.UPLINK
+      local quantum = rate_quantum(up)
+      local est = sf("est %dsec %dsec", env.EST_MIN, env.EST_MAX)
+      local mtu = env.MTU
+
+   qa("root handle 1: est 1sec 2sec htb default 1")
+   cap("1: classid 1:1 est 1sec 2sec htb burst 64 rate %dkibit mtu 1500 mpu 64 quantum 1500",up)
+   qap("1:1 handle %x qfq",10)
+   -- FIXME, do the calculation for the bandwidth
+   env.BIGDISC="sfq limit 80 headdrop quantum 1500 flows 200 divisor 16384 redflowlimit 9000 min 1500 max 4500 depth 12 probability 0.2 ecn harddrop"
+--   env.BIGDISC="sfq limit 80"
+
+   one_over_ip(10)
+   end
 end
 
 local function htb_qfq_drop_head(queues)
@@ -1481,6 +1522,7 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["sfq"] = ethernet_sfq,
 	       ["efq"] = ethernet_efq,
 	       ["sfqred"] = ethernet_efqr,
+	       ["htb_qfq_sfqred"] = htb_qfq_sfqred,
 	       ["htb_qfq_drop_head"] = htb_qfq_drop_head,
 	       ["htb_sfq_red"] = htb_sfq_red,
 	       ["htb_sfq_red_cero"] = htb_sfq_red_cero,
