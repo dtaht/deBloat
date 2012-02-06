@@ -1111,6 +1111,18 @@ local function one_over_ip(base)
    faip_bins(base); 
 end
 
+local function tbf(queues)
+   kernel_prereqs({"sch_sfq","sch_qfq"})
+   if env.UPLINK ~= nil then
+      local up=env.UPLINK
+      local quantum = rate_quantum(up)
+      local est = sf("est %dsec %dsec", env.EST_MIN, env.EST_MAX)
+      local mtu = env.MTU
+
+   qa("root handle 1: est 1sec 2sec tbf rate %dkbit burst 5k latency 5ms minburst 1540", up)
+   end
+end
+
 local function htb_qfq_sfqred(queues)
    kernel_prereqs({"sch_sfq","sch_qfq"})
    if env.UPLINK ~= nil then
@@ -1526,6 +1538,7 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["htb_qfq_drop_head"] = htb_qfq_drop_head,
 	       ["htb_sfq_red"] = htb_sfq_red,
 	       ["htb_sfq_red_cero"] = htb_sfq_red_cero,
+	       ["tbf"] = tbf,
 	       ["oopenwrt"] = oopenwrt,
 	       ["wshaper"] = wshaper,
 	       ["owshaper"] = owshaper,
