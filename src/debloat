@@ -341,10 +341,6 @@ PREREQS2 = {
    ["ared"] = { "sch_qfq", "sch_red", "cls_u32", "cls_flow" }
 }
 
-local function opentc()
-   return popen(sf("%s %s",env.TC, env.TCARG),'w')
-end
-
 -- FIXME: Merge multiple tables into one table on values in first
 -- return table
 
@@ -514,6 +510,18 @@ function kleinrock(bandwidth, delay, flows)
    return round(math.sqrt(flows)*bandwidth*delay)
 end
 
+function bound(v,min,max)
+   if max < min then 
+      local t = max
+      max = min
+      min = t
+   end
+   if v > min and v < max then return v end
+   if v > max then return max end
+   if v < min then return min end
+   return v
+end
+
 local function lowrate(rate)
    if rate < 15000 then return true else return false end
 end
@@ -537,6 +545,56 @@ local function overhead(rate)
    return(s)
 end
 
+-- Attempt at finding useful values for sfqred
+-- FIXME: re-read ared paper
+
+-- Yes, you want a depth=10 (or 15) limit, to cope with the increase
+-- of CWND done by Google.
+
+-- Best thing would be to use SFQRED and headdrop, so that there is no
+-- assumption on packet lengths.
+
+-- tc qdisc add ... sfq headdrop limit 200 depth 15 redflowlimit 50000
+-- min 5000 max 10000 probability 0.15 ecn
+
+-- Another often hidden assumption is that RTTs are 100ms
+
+target = 50
+
+-- The problem with byte oriented red is that it will never
+-- kick in or mark acks. 
+
+local function redflowlimit(up,down)
+   local OVERHEAD=0
+   if env.OVERHEAD then OVERHEAD=env.OVERHEAD end
+   bytes_per_ms = up / 12.5
+   pkt_per_ms_worst = bytes_per_ms/(env.MTU + OVERHEAD)
+   pkt_per_ms_best = bytes_per_ms/(64 + OVERHEAD)
+   local limit = round(pkt_per_ms_best * target)
+   local perflow = round(pkt_per_ms_best)
+   local rlimit = bound(round(target * bytes_per_ms),1500,15000)
+   local depth = 10
+   return limit,rlimit,depth,pkt_per_ms_worst
+end
+
+--print(redflowlimit(4000,20000))
+--print(redflowlimit(2000,20000))
+--print(redflowlimit(400,2000))
+
+-- Choke is packet oriented at the UI, but bytes underlie it...
+
+local function chokelimit(up,down)
+   local OVERHEAD=0
+   if env.OVERHEAD then OVERHEAD=env.OVERHEAD end
+   bytes_per_ms = up / 12.5
+   pkt_per_ms_worst = bytes_per_ms/(env.MTU + OVERHEAD)
+   pkt_per_ms_best = bytes_per_ms/(64 + OVERHEAD)
+   local limit = round(pkt_per_ms_best * target)
+   local perflow = round(pkt_per_ms_best)
+   local rlimit = bound(round(target * bytes_per_ms),1500,15000)
+   local depth = 10
+   return limit,rlimit,depth,pkt_per_ms_worst
+end
 
 -- Some htb info that is probably hopelessly out of date
 
@@ -762,6 +820,25 @@ end
 
 -- Some TC helpers
 
+-- rates are specified as kilobits (xkbits)
+-- does this need to be integer?
+-- FIXME the effect of rounding really isn't what we want
+
+local function r2s(rate) 
+   if round(rate) < 1000 then return round(rate) .. "kbit" end
+   local r = rate/1000
+   if round(r) < 1000 then return round(r) .. "mbit" end
+   r = r/1000
+   return round(r) .. "gbit"
+end
+
+-- print(r2s(10))
+-- print(r2s(1001))
+-- print(r2s(1050)) -- yea, rounding bad
+-- print(r2s(999999.4))
+-- print(r2s(10000000.6))
+-- print(r2s(1000000))
+
 -- TC tends to be repetitive and hard to read
 -- So these function shorten things considerably by doing
 -- the "{class,qdisc,filter} add dev %s" for us
@@ -802,6 +879,33 @@ end
 
 local function qap(...) 
    return tc:write(qapstring,sf(...),"\n") 
+end
+
+-- FIXME sanely calculate htb rate, overhead, etc, etc
+
+local function hap(parent,child,rate,str)
+   cap("%x: classid %x:%x %s htb rate %skibit mtu %d mpu 64 quantum %d %s",
+	  parent,parent,child,est,rate,env.MTU,quantum,str)
+end
+
+local function opentc()
+   return popen(sf("%s %s",env.TC, env.TCARG),'w')
+end
+
+function ingress()
+   if env.INGRESS then
+      kernel_prereqs({"sch_ingress"})
+      local tc = opentc()
+      tc:write(sf("qdisc del dev %s ingress\n",IFACE))
+      tc:close()
+   end
+end
+
+function resettc()
+   local tc=opentc()
+   tc:write(sf("qdisc del dev %s root\n",IFACE))
+   tc:close()
+   return opentc()
 end
 
 -- QFQ: Create a bin attached to the parent class
@@ -865,7 +969,7 @@ end
 local function mqprio_bins(parent,queues)
 if env.NAT then
    fap("%x: handle 3 protocol ipv6 prio 94 flow hash keys proto-dst,rxhash divisor %d",parent,queues)
-   fap("%x: handle 3 protocol all prio 97 flow hash keys proto-dst,nfct-src divisor %d",parent,queues)
+   fap("%x: handle 4 protocol all prio 97 flow hash keys proto-dst,nfct-src divisor %d",parent,queues)
 else
    fap("%x: handle 3 protocol all prio 97 flow hash keys proto-dst,rxhash divisor %d",parent,queues)
 end
@@ -941,7 +1045,6 @@ function recreate_filter(t)
    iptables(sf("-t %s -X %s", t.table,t.chain))
    iptables(sf("-t %s -N %s", t.table,t.chain))
 end
-
 
 -- Builds up a list of iptables commands to flush the qos_* chains,
 -- remove rules referring to them, then delete them
@@ -1075,16 +1178,13 @@ end
 local function sfqred_ingress()
       RATE=env.DOWNLINK
       if RATE == nil then return end
-      kernel_prereqs({"sch_ingress","sch_cbq","act_mirred","cls_fw"})
+      kernel_prereqs({"sch_cbq","act_mirred","cls_fw"})
       IFB="ifb0"
       ALLOT=1524 -- not needed?
-      tc2 = opentc()
-      
+      ingress()
       qa("ingress")
       fap("ffff: protocol all u32 match u32 0 0 flowid 1:1 action mirred egress redirect dev %s",IFB)
     -- Lets say our NIC is 100Mbit
-    tc2:write(sf("qdisc del dev %s root\n",IFB))
-    tc2:close()
     tc:write(sf("qdisc add dev %s root handle 1: cbq avpkt 1000 rate 100Mbit bandwidth 100Mbit\n",IFB))
 -- FIXME: allocate bandwidth from underlying interface
     tc:write(sf("class add dev %s parent 1: classid 1:1 cbq allot 1524 mpu 64 rate 100Mbit prio 1 bandwidth 100Mbit maxburst 150 avpkt 1500 bounded\n", IFB))
@@ -1139,7 +1239,6 @@ end
 -- schemes are consistent enough to tie everything together
 -- sanely...
 
-
 local function model_qfq_subdisc(base)
    cb(base,MULTICAST,env.MDISC)
    cb(base,DEFAULTB,env.NORMDISC)
@@ -1150,7 +1249,7 @@ local function model_qfq_subdisc(base)
 end
 
 local function model_choke_subdisc(base)
-   env.BIGDISC=sf("choke bandwidth %dkbit limit 64 min 4 max 12 ecn",env.UPLINK)
+   env.BIGDISC=sf("choke bandwidth %dkbit limit 24 min 4 max 12 probability .2 ecn",env.UPLINK)
    model_qfq_subdisc(base)
 end
 
@@ -1181,25 +1280,6 @@ local function drr(queues)
    fap("%x: handle 10 protocol all prio 10 flow hash keys proto-src,dst divisor %d perturb 10", 1, env.BINS);
 end
 
--- tc qdisc add dev eth0 handle 1 root drr
--- tc class add dev eth0 parent 1: classid 1:1 drr
--- tc class add dev eth0 parent 1: classid 1:2 drr
-
---     You also need to add at least one filter to classify packets.
-
--- tc filter add dev eth0 protocol all classid 1:1
-
---       tc qdisc add dev .. drr
-
---      for i in .. 1024;do
---            tc class add dev .. classid $handle:$(print %x $i)
---           tc qdisc add dev .. fifo limit 16
---      done
-
---      tc  filter  add  ..   protocol   ip   ..   $handle   flow   hash   keys
---      src,dst,proto,proto-src,proto-dst divisor 1024 perturb 10
-
-
 -- Choke
 
 local function choke(queues)
@@ -1209,10 +1289,25 @@ local function choke(queues)
       local quantum = rate_quantum(up)
       local est = sf("est %dsec %dsec", env.EST_MIN, env.EST_MAX)
       local mtu = env.MTU
-   qa("root handle 1: choke bandwidth %dkbit limit 64 min 4 max 12 ecn", up)
+--      local limit,min,max = chokelimit(up,env.DOWNLINK)
+      qa("root handle 1: choke bandwidth %dkbit limit 32 min 4 max 12 probability .2 ecn", 
+	 up)
    end
 
 end
+
+-- hap
+ 
+-- Using the same parameters as in Section V, we can estimate , queue
+-- size oscillates the minimal N to be 8.08. When packets, constantly
+-- turning CHOKe on and off, around as shown in Fig. 9 (compare with
+-- Fig. 8). When is small, the equilibrium model in Section II no
+-- longer holds. The same phenomenon is observed when increases (with
+-- fixed ). The lower bound on dropping probability when CHOKe is
+-- active, , eventually prevents TCP flows from making full use of the
+-- available capacity. A positive effect is that the queue length is
+-- controlled to stay around 20.  We have also simulated with more th
+
 
 local function htb_choke(queues)
    kernel_prereqs({"sch_choke", "sch_htb"})
@@ -1222,8 +1317,14 @@ local function htb_choke(queues)
       local est = sf("est %dsec %dsec", env.EST_MIN, env.EST_MAX)
       local mtu = env.MTU
       qa("root handle 1: %s htb default 1", est)
-      cap("1: classid 1:1 %s htb burst 64 rate %dkibit mtu 1500 mpu 64 quantum 1500", est, up) 
-      qap("1:1 handle 10: choke bandwidth %dkbit limit 64 min 4 max 12 ecn", up)
+      cap("1: classid 1:1 %s htb burst 64 rate %dkibit mtu 1500 mpu 64", est, up) 
+--      qap("1:1 handle 10: choke bandwidth %dkbit limit 32 min 4 max 16 probability .2 ecn", 
+--	 up)
+--      at 4Mbit, choke will keep 2 .. 8 packets for min, max if 
+--      you just set the bandwidth
+      -- at 40mbit choke will keep 4..12
+-- from the doc, this is bytes. From the code, this turns pkts into avpkts?? 
+      qap("1:1 handle 10: choke bandwidth %dkbit limit 24 min 2 max 12 probability .2 ecn", up)
     end
 end
 
@@ -1248,7 +1349,7 @@ local function htb_sfb(queues)
 end
 
 local function tbf(queues)
-   kernel_prereqs({"sch_sfq","sch_qfq"})
+   kernel_prereqs({"sch_tbf"})
    if env.UPLINK ~= nil then
       local up=env.UPLINK
       local quantum = rate_quantum(up)
@@ -1452,6 +1553,9 @@ local function wireless_sfqr(queues)
 end
 
 local function fourtier(queues)
+   kernel_prereqs({"sch_sfq",
+		   "ifb",
+		   "act_mirred"})
    if env.UPLINK ~= nil then
       local up=env.UPLINK
       local quantum = rate_quantum(up)
@@ -1725,24 +1829,8 @@ local function ethernet(model)
    return nil
 end
 
-function ingress()
-   if env.INGRESS then
-   local tc = opentc()
-   tc:write(sf("qdisc del dev %s ingress\n",IFACE))
-   tc:close()
-   end
-end
-
 -- It's annoying to get deletion as an error
 -- And confusing to the user
-
-function resettc()
-   local tc=opentc()
-   tc:write(sf("qdisc del dev %s root\n",IFACE))
-   tc:close()
-   ingress()
-   return opentc()
-end
 
 if env.PINGOPT then
    pingopt = function(parent,flow) 
