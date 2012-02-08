@@ -1496,7 +1496,7 @@ end
 
 local function ethernet_efqr(queues)
 -- FIXME, we can do sane things with speed here
-	 qa("root handle %x: est 1sec 4sec sfq limit 300 headdrop perturb 60000 flows %d divisor 16384 redflowlimit 32000 min 4500 max 18000 probability 0.20 ecn harddrop",10,2000)
+	 qa("root handle %x: est 1sec 4sec sfq limit 300 depth 20 headdrop perturb 60000 flows %d divisor 16384 redflowlimit 32000 min 4500 max 18000 probability 0.20 ecn harddrop",10,2000)
 end
 
 -- FIXME: just stubs for now
