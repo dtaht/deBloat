@@ -821,6 +821,14 @@ end
 -- for TSO/GSO to work.  These quantums are way too large for lower
 -- speeds
 
+--[[ FIXME: Add ADSL support
+My crude hack was adding:
+tc_stab_string="stab overhead 18 mtu 2048 mpu 53 linklayer atm"
+to generate.sh; and then modifying the addition of root disc like the following
+tc qdisc add dev $dev root handle 1: ${tc_stab_string} hfsc default ${class_default}0
+Then I only needed to reduce the uplink and downlink speed marginally (5%) and got good and stable ping latencies even in the lieu of massive uploads and opening 100 browser tabs at the same time. Without the stab option I had to reduce nominal speeds to around 65%-70% of the line rate and still got worse ping latencies than with the stab option.
+--]]
+
 local function htb_sfq(speed,flows)
    qa("root handle 1: est 1sec 8sec htb default 1")
    cap("1: classid 1:1 est 1sec 8sec htb rate 200Mbit mtu 1500 quantum 80000")
