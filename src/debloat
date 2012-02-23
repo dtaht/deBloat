@@ -1007,16 +1007,14 @@ local function htb_sfq(speed,flows)
    qap("1:1 handle 10: est 1sec 8sec sfq limit 2000 depth 10 headdrop flows 1000 divisor 16384")
 end
 
--- Hard coded for specific test case for now of 4Mbit and closer to openwrt
 -- local function htb_sfq_red(speed,flows)
+-- hard coded, no math, reasonable for ~4Mbit
 
 local function htb_sfq_red(queues)
    qa("root handle 1: est 1sec 8sec htb default 1")
-   cap("1: classid 1:1 est 1sec 8sec htb rate 4Mbit mtu 1500 quantum 4500")
-   qap("1:1 handle 10: est 1sec 4sec sfq limit 120 headdrop flows 64 divisor 16384 redflowlimit 40000 min 1500 max 18000 depth 16 probability 0.12 ecn")
+   cap("1: classid 1:1 est 1sec 8sec htb rate %dkbit mtu 1500 quantum 1514",env.UPLINK)
+   qap("1:1 handle 10: est 1sec 4sec sfq limit 200 headdrop flows 500 divisor 16384 redflowlimit 24000 min 3000 max 18000 depth 16 probability 0.12 ecn harddrop")
 end
-
--- I haven't backported REDSFQ to cerowrt yet
 
 local function htb_sfq_red_cero(queues)
    qa("root handle 1: est 1sec 8sec htb default 1")
