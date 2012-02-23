@@ -1061,7 +1061,9 @@ end
 
 function iptables_aqm_clean() 
    tstr="-t mangle -S | grep '^-N qos_\|-j qos_' | grep -v '^-A qos_' | sed -e '/^-N/{s/^-N/-X/;H;s/^-X/-F/}' -e 's/^-A/-D/' -e '${p;g}' | sed -n -e 's/^./iptables -t mangle &/p'"
-   iptables(tstr)
+   iptables4(tstr)
+   tstr="-t mangle -S | grep '^-N qos_\|-j qos_' | grep -v '^-A qos_' | sed -e '/^-N/{s/^-N/-X/;H;s/^-X/-F/}' -e 's/^-A/-D/' -e '${p;g}' | sed -n -e 's/^./ip6tables -t mangle &/p'"
+   iptables6(tstr)
 end
 
 -- ${iptrules:+${iptrules}${N}iptables -t mangle -A qos_${cg}_ct -j CONNMARK --save-mark --mask 0xff}
