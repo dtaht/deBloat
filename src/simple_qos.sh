@@ -4,6 +4,12 @@
 # to prioritization
 # Routed traffic
 
+CEIL=4000
+PRIO_RATE=`expr $CEIL / 66`
+BE_RATE=`expr $CEIL / 66`
+BK_RATE=`expr $CEIL / 90`
+BE_CEIL=`expr $CEIL - 64`
+
 ipt() {
 iptables $*
 ip6tables $*
@@ -36,19 +42,20 @@ ipt -t mangle -A OUTPUT -o $IFACE -g QOS_MARK
 
 # TC rules
 
-CEIL=240
-
 tc qdisc del dev $IFACE root
 tc qdisc add dev $IFACE root handle 1: htb default 12
 tc class add dev $IFACE parent 1: classid 1:1 htb rate ${CEIL}kbit ceil ${CEIL}kbit
-tc class add dev $IFACE parent 1:1 classid 1:10 htb rate 80kbit ceil 80kbit prio 0
-tc class add dev $IFACE parent 1:1 classid 1:11 htb rate 80kbit ceil ${CEIL}kbit prio 1
-tc class add dev $IFACE parent 1:1 classid 1:12 htb rate 20kbit ceil ${CEIL}kbit prio 2
-tc class add dev $IFACE parent 1:1 classid 1:13 htb rate 20kbit ceil ${CEIL}kbit prio 2
+tc class add dev $IFACE parent 1:1 classid 1:10 htb rate ${CEIL}kbit ceil ${CEIL}kbit prio 0
+tc class add dev $IFACE parent 1:1 classid 1:11 htb rate 32kbit ceil ${PRIO_RATE}kbit prio 1
+tc class add dev $IFACE parent 1:1 classid 1:12 htb rate ${BE_RATE}kbit ceil ${BE_CEIL}kbit prio 2
+tc class add dev $IFACE parent 1:1 classid 1:13 htb rate ${BK_RATE}kbit ceil ${CEIL}kbit prio 2
 
-tc qdisc add dev $IFACE parent 1:11 handle 110: sfq 
-tc qdisc add dev $IFACE parent 1:12 handle 120: sfq
-tc qdisc add dev $IFACE parent 1:13 handle 130: sfq 
+tc qdisc add dev $IFACE parent 1:11 handle 110: sfq limit 200 depth 42 flows 2000 \
+min 3028 max 18000 probability .2 redflowlimit 32000 ecn headdrop
+tc qdisc add dev $IFACE parent 1:12 handle 120: sfq limit 300 depth 42 flows 2000 \
+min 3000 max 18000 probability .2 redflowlimit 32000 ecn headdrop
+tc qdisc add dev $IFACE parent 1:13 handle 130: sfq limit 150 depth 42 flows 8000 \
+min 3000 max 18000 probability .2 redflowlimit 32000 ecn headdrop
 
 tc filter add dev $IFACE parent 1:0 protocol ip prio 1 handle 1 fw classid 1:11
 tc filter add dev $IFACE parent 1:0 protocol ip prio 2 handle 2 fw classid 1:12

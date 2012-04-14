@@ -1,0 +1,12 @@
+#!/bin/sh
+
+sudo tcpdump -i wlan0 -w/root/sfqnewboth.cap &
+sleep 4
+for i in `seq 1 50`
+do
+netperf -l 60 -4 -Y CS1,CS1 -H huchra.bufferbloat.net >> sfqnewboth.log &
+done
+ping huchra.bufferbloat.net &
+sleep 90
+killall ping
+killall tcpdump
