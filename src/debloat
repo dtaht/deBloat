@@ -522,6 +522,10 @@ function bound(v,min,max)
    return v
 end
 
+function rbound(v,min,max)
+	return round(bound(v,min,max))
+end
+
 local function lowrate(rate)
    if rate < 15000 then return true else return false end
 end
@@ -572,7 +576,7 @@ local function redflowlimit(up,down)
    pkt_per_ms_best = bytes_per_ms/(64 + OVERHEAD)
    local limit = round(pkt_per_ms_best * target)
    local perflow = round(pkt_per_ms_best)
-   local rlimit = bound(round(target * bytes_per_ms),1500,15000)
+   local rlimit = rbound(target * bytes_per_ms,1500,15000)
    local depth = 10
    return limit,rlimit,depth,pkt_per_ms_worst
 end
@@ -591,7 +595,7 @@ local function chokelimit(up,down)
    pkt_per_ms_best = bytes_per_ms/(64 + OVERHEAD)
    local limit = round(pkt_per_ms_best * target)
    local perflow = round(pkt_per_ms_best)
-   local rlimit = bound(round(target * bytes_per_ms),1500,15000)
+   local rlimit = rbound(target * bytes_per_ms,1500,15000)
    local depth = 10
    return limit,rlimit,depth,pkt_per_ms_worst
 end
@@ -1012,8 +1016,32 @@ end
 
 local function htb_sfq_red(queues)
    qa("root handle 1: est 1sec 8sec htb default 1")
-   cap("1: classid 1:1 est 1sec 8sec htb rate %dkbit mtu 1500 quantum 1514",env.UPLINK)
+   cap("1: classid 1:1 est 1sec 8sec htb rate %dkibit mtu 1500 quantum 1514",env.UPLINK)
    qap("1:1 handle 10: est 1sec 4sec sfq limit 200 headdrop flows 500 divisor 16384 redflowlimit 24000 min 3000 max 18000 depth 16 probability 0.12 ecn harddrop")
+end
+
+-- This simplified model is intended to work best with the out of tree
+-- sfq that has enqueuing to head. It merely looks for background traffic
+-- and tosses that into a separate bucket.
+
+-- Rate and ceil
+
+local function htb_sfq_red2(queues)
+   BKTRAFFIC=rbound(env.UPLINK *.05, 32, env.UPLINK*.90)
+   BKTRAFFIC_MAX=rbound(env.UPLINK*.85,32,env.UPLINK*.90)
+   MAXTRAFFIC=round(env.UPLINK-BKTRAFFIC)
+   qa("root handle 1:0 est 1sec 8sec htb default 1")
+   cap("1:0 classid 10:1 est 1sec 8sec htb prio 1 rate %dkbps ceil %dkbps mtu 1500 quantum 1514",
+	env.UPLINK, env.UPLINK)
+   cap("10:1 classid 11:1 est 1sec 8sec htb prio 2 rate %dkbps ceil %dkbps mtu 1500 quantum 1514",
+	BKTRAFFIC,BKTRAFFIC_MAX)
+   cap("10:1 classid 12:1 est 1sec 8sec htb prio 2 rate %dkbps ceil %dkbps mtu 1500 quantum 1514",
+	BKTRAFFIC,BKTRAFFIC_MAX)
+   qap("10:1 handle 12:0 est 1sec 4sec sfq limit 300 headdrop flows 2000 divisor 16384 redflowlimit 24000 min 3000 max 18000 depth 43 probability 0.12 ecn harddrop")
+   qap("11:1 handle 20:0 est 1sec 4sec sfq limit 300 headdrop flows 2000 divisor 16384 redflowlimit 64000 min 3000 max 18000 depth 43 probability 0.12 ecn harddrop")
+   fap("1:1 prio 10 u32 match ip tos 0x08 0xff flowid 11:1")
+--   fap("1:0 prio 11 u32 match ipv6 tos 0x08 0xfc flowid 1:2")
+
 end
 
 local function htb_sfq_red_cero(queues)
@@ -1800,6 +1828,7 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["htb_qfq_sfqred"] = htb_qfq_sfqred,
 	       ["htb_qfq_drop_head"] = htb_qfq_drop_head,
 	       ["htb_sfq_red"] = htb_sfq_red,
+	       ["htb_sfq_red2"] = htb_sfq_red2,
 	       ["htb_sfq_red_cero"] = htb_sfq_red_cero,
 	       ["tbf"] = tbf,
 	       ["htb_sfb"] = htb_sfb,
