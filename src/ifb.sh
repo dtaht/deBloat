@@ -2,6 +2,10 @@
 
 #tc qdisc add dev $device ingress
 #tc filter add dev $device parent ffff: protocol ip prio 1 u32 match u32 0 0 flowid 1:1 action connmark action mirred egress redirect dev ifb$ifbdev" "$N"
+insmod sch_ingress
+insmod act_mirred
+insmod cls_fw
+insmod sch_htb
 
 DEV=ge00
 DOWNLINK=24000
