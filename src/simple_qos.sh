@@ -20,7 +20,7 @@
 
 # You need to jiggle these parameters
 
-UPLINK=4000
+UPLINK=2000
 DOWNLINK=20000
 
 CEIL=$UPLINK
@@ -91,7 +91,7 @@ tc qdisc del dev $IFACE root
 tc qdisc add dev $IFACE root handle 1: htb ${RTQ} default 12
 tc class add dev $IFACE parent 1: classid 1:1 htb rate ${CEIL}kbit ceil ${CEIL}kbit $ADSLL
 tc class add dev $IFACE parent 1:1 classid 1:10 htb rate ${CEIL}kbit ceil ${CEIL}kbit prio 0 $ADSLL
-tc class add dev $IFACE parent 1:1 classid 1:11 htb rate 32kbit ceil ${PRIO_RATE}kbit prio 1 $ADSLL
+tc class add dev $IFACE parent 1:1 classid 1:11 htb rate 128kbit ceil ${PRIO_RATE}kbit prio 1 $ADSLL
 tc class add dev $IFACE parent 1:1 classid 1:12 htb rate ${BE_RATE}kbit ceil ${BE_CEIL}kbit prio 2 $ADSLL
 tc class add dev $IFACE parent 1:1 classid 1:13 htb rate ${BK_RATE}kbit ceil ${BE_CEIL}kbit prio 3 $ADSLL
 
@@ -130,8 +130,8 @@ tc filter add dev $IFACE parent 1:0 protocol arp prio 7 handle 1 fw classid 1:11
 }
 
 ingress() {
+.
 # tbd
-:
 }
 
 egress 
