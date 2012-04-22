@@ -18,20 +18,36 @@
 # to setup various other parameters such as BQL and ethtool.
 # (And that the debloat script has setup the other interfaces)
 
+[ -e /etc/functions.sh ] && . /etc/functions.sh || . ./functions.sh
+
 # You need to jiggle these parameters
 
 UPLINK=2000
 DOWNLINK=20000
+DEV=ifb0
+IFACE=ge00
+DEPTH=42
+TC=/usr/sbin/tc
+FLOWS=8000
+PERTURB="perturb 0" # Permutation is costly, disable
+FLOWS=16000 # 
+BQL_MAX=3000
+
 
 CEIL=$UPLINK
 MTU=1500
 ADSLL=""
 # PPOE=yes
 
-# You shouldn't need to touch anything here  
+#config interface ge00
+#        option classgroup  "Default"
+#        option enabled      0
+#        option upload       128
+#        option download     1024
 
-PERTURB="perturb 0" # Permutation is costly, disable
-FLOWS=16000 # 
+# uci get aqm.enable
+#
+# You shouldn't need to touch anything here  
 
 if [ -s "$PPOE" ] 
 then
@@ -40,24 +56,12 @@ then
 	ADSLL="linklayer ${LINKLAYER} overhead ${OVERHEAD}"
 fi
 
-PRIO_RATE=`expr $CEIL / 3` # Ceiling for prioirty
-BE_RATE=`expr $CEIL / 6`   # Min for best effort
-BK_RATE=`expr $CEIL / 9`   # Min for background
-BE_CEIL=`expr $CEIL - 64`  # A little slop at the top
-
-R2Q=""
-
-if [ "$CEIL" -lt 1000 ]
-then
-	R2Q="rtq 1"
-fi
-
 ipt() {
 iptables $*
 ip6tables $*
 }
 
-egress() {
+ipt_setup() {
 
 ipt -t mangle -F
 ipt -t mangle -N QOS_MARK
@@ -77,15 +81,36 @@ ipt -t mangle -A QOS_MARK -i vtun+ -p tcp -j MARK --set-mark 0x2 # tcp tunnels n
 
 # Turn it on. Some sources suggest PREROUTING here
 
+ipt -t mangle -A POSTROUTING -o $DEV -g QOS_MARK 
 ipt -t mangle -A POSTROUTING -o $IFACE -g QOS_MARK 
 
 # Emanating from router, do a little more optimization
-# but don't bother with it too much. Not clear if the second line is needed
+# but don't bother with it too much. 
 
 ipt -t mangle -A OUTPUT -p udp -m multiport --ports 123,53 -j DSCP --set-dscp-class AF42
+
+#Not clear if the second line is needed
 #ipt -t mangle -A OUTPUT -o $IFACE -g QOS_MARK
 
+}
+
+
 # TC rules
+
+egress() {
+
+CEIL=${UPLINK}
+PRIO_RATE=`expr $CEIL / 3` # Ceiling for prioirty
+BE_RATE=`expr $CEIL / 6`   # Min for best effort
+BK_RATE=`expr $CEIL / 9`   # Min for background
+BE_CEIL=`expr $CEIL - 64`  # A little slop at the top
+
+R2Q=""
+
+if [ "$CEIL" -lt 1000 ]
+then
+	R2Q="rtq 1"
+fi
 
 tc qdisc del dev $IFACE root
 tc qdisc add dev $IFACE root handle 1: htb ${RTQ} default 12
@@ -130,15 +155,88 @@ tc filter add dev $IFACE parent 1:0 protocol arp prio 7 handle 1 fw classid 1:11
 }
 
 ingress() {
-.
-# tbd
+
+insmod sch_ingress
+insmod act_mirred
+insmod cls_fw
+insmod sch_htb
+
+CEIL=$DOWNLINK
+PRIO_RATE=`expr $CEIL / 3` # Ceiling for prioirty
+BE_RATE=`expr $CEIL / 6`   # Min for best effort
+BK_RATE=`expr $CEIL / 9`   # Min for background
+BE_CEIL=`expr $CEIL - 64`  # A little slop at the top
+
+R2Q=""
+
+tc qdisc del dev $IFACE handle ffff: ingress
+tc qdisc add dev $IFACE handle ffff: ingress
+ 
+tc qdisc del dev $DEV root 
+tc qdisc add dev $DEV root handle 1: htb ${RTQ} default 12
+tc class add dev $DEV parent 1: classid 1:1 htb rate ${CEIL}kibit ceil ${CEIL}kibit $ADSLL
+tc class add dev $DEV parent 1:1 classid 1:10 htb rate ${CEIL}kibit ceil ${CEIL}kibit prio 0 $ADSLL
+tc class add dev $DEV parent 1:1 classid 1:11 htb rate 32kibit ceil ${PRIO_RATE}kibit prio 1 $ADSLL
+tc class add dev $DEV parent 1:1 classid 1:12 htb rate ${BE_RATE}kibit ceil ${BE_CEIL}kibit prio 2 $ADSLL
+tc class add dev $DEV parent 1:1 classid 1:13 htb rate ${BK_RATE}kibit ceil ${BE_CEIL}kibit prio 3 $ADSLL
+
+# The calculations (still) needed here are why I 
+# wanted to do this in lua first.
+# all the variables - limit, depth, min, max, redflowlimit 
+# are dependent on the bandwidth, but scale differently. 
+# I don't think RED can be made to work on long RTTs, period...
+
+# I'd prefer to use a pre-nat filter but that causes permutation...
+# Anyway... need FP (sqrt) from lua to finish this part...
+
+# A depth of 16 is better at low rates, but no lower. 
+# I'd argue for a floor of 22 Packet aggregation suggests 
+# ${DEPTH}-64.
+
+tc qdisc add dev $DEV parent 1:11 handle 110: sfq \
+    limit 200 depth ${DEPTH} flows $FLOWS \
+    min 16000 max 32000 probability .12 redflowlimit 64000 \
+    ${PERTURB} ecn headdrop harddrop divisor 16384
+
+tc qdisc add dev $DEV parent 1:12 handle 120: sfq \
+    limit 300 depth ${DEPTH} flows ${FLOWS} \
+    min 16000 max 32000 probability .12 redflowlimit 64000 \
+    ${PERTURB} ecn headdrop harddrop divisor 16384
+
+tc qdisc add dev $DEV parent 1:13 handle 130: sfq \
+    limit 150 depth ${DEPTH} flows ${FLOWS} \
+    min 12000 max 24000 probability .12 redflowlimit 32000 \
+    ${PERTURB} ecn headdrop harddrop divisor 16384
+
+tc filter add dev $DEV parent 1:0 protocol ip prio 1 handle 1 fw classid 1:11
+tc filter add dev $DEV parent 1:0 protocol ip prio 2 handle 2 fw classid 1:12
+tc filter add dev $DEV parent 1:0 protocol ip prio 3 handle 3 fw classid 1:13
+
+# ipv6 support. Note that the handle indicates the fw mark bucket that is looked for
+
+tc filter add dev $DEV parent 1:0 protocol ipv6 prio 4 handle 1 fw classid 1:11
+tc filter add dev $DEV parent 1:0 protocol ipv6 prio 5 handle 2 fw classid 1:12
+tc filter add dev $DEV parent 1:0 protocol ipv6 prio 6 handle 3 fw classid 1:13
+
+# Arp traffic
+
+tc filter add dev $DEV parent 1:0 protocol arp prio 7 handle 1 fw classid 1:11
+
+ifconfig ifb0 up
+
+# redirect all IP packets arriving in $IFACE to ifb0 
+
+$TC filter add dev $IFACE parent ffff: protocol all prio 10 u32 \
+  match u32 0 0 flowid 1:1 action mirred egress redirect dev $DEV
+
 }
 
+ipt_setup
 egress 
 ingress
 
 # References:
-# This shaper attempts to go for 1/u performance in a clever way
+# This alternate shaper attempts to go for 1/u performance in a clever way
 # http://git.coverfire.com/?p=linux-qos-scripts.git;a=blob;f=src-3tos.sh;hb=HEAD
 
 # Comments
