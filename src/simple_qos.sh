@@ -72,16 +72,17 @@ ipt -t mangle -A QOS_MARK -m dscp --dscp-class CS6 -j MARK --set-mark 0x1
 ipt -t mangle -A QOS_MARK -m dscp --dscp-class EF -j MARK --set-mark 0x1
 ipt -t mangle -A QOS_MARK -m dscp --dscp-class AF42 -j MARK --set-mark 0x1
 ipt -t mangle -A QOS_MARK -m tos --tos Minimize-Delay -j MARK --set-mark 0x1
-ipt -t mangle -A QOS_MARK -i s+ -p tcp -m tcp --tcp-flags SYN,RST,ACK SYN -j MARK --set-mark 0x1
 
-# Not sure if this will work. Encapsulation is a problem period
-ipt -t mangle -A QOS_MARK -i vtun+ -p tcp -j MARK --set-mark 0x2 # tcp tunnels need ordering
 # and it might be a good idea to do it for udp tunnels too
 
-# Turn it on. Some sources suggest PREROUTING here
+# Turn it on. Preserve classification if already performed
 
-ipt -t mangle -A POSTROUTING -o $DEV -g QOS_MARK 
-ipt -t mangle -A POSTROUTING -o $IFACE -g QOS_MARK 
+ipt -t mangle -A POSTROUTING -o $DEV -m mark --mark 0x00 -g QOS_MARK 
+ipt -t mangle -A POSTROUTING -o $IFACE -m mark --mark 0x00 -g QOS_MARK 
+
+ipt -t mangle -A PREROUTING -i s+ -p tcp -m tcp --tcp-flags SYN,RST,ACK SYN -j MARK --set-mark 0x01
+# Not sure if this will work. Encapsulation is a problem period
+ipt -t mangle -A PREROUTING -i vtun+ -p tcp -j MARK --set-mark 0x2 # tcp tunnels need ordering
 
 # Emanating from router, do a little more optimization
 # but don't bother with it too much. 
