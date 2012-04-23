@@ -31,8 +31,7 @@ TC=/usr/sbin/tc
 FLOWS=8000
 PERTURB="perturb 0" # Permutation is costly, disable
 FLOWS=16000 # 
-BQL_MAX=3000
-
+BQL_MAX=3000 # it is important to factor this into the RED calc
 
 CEIL=$UPLINK
 MTU=1500
@@ -195,17 +194,17 @@ tc class add dev $DEV parent 1:1 classid 1:13 htb rate ${BK_RATE}kibit ceil ${BE
 
 tc qdisc add dev $DEV parent 1:11 handle 110: sfq \
     limit 200 depth ${DEPTH} flows $FLOWS \
-    min 16000 max 32000 probability .12 redflowlimit 64000 \
+    min 24000 max 48000 probability .12 redflowlimit 64000 \
     ${PERTURB} ecn headdrop harddrop divisor 16384
 
 tc qdisc add dev $DEV parent 1:12 handle 120: sfq \
     limit 300 depth ${DEPTH} flows ${FLOWS} \
-    min 16000 max 32000 probability .12 redflowlimit 64000 \
+    min 24000 max 48000 probability .12 redflowlimit 64000 \
     ${PERTURB} ecn headdrop harddrop divisor 16384
 
 tc qdisc add dev $DEV parent 1:13 handle 130: sfq \
     limit 150 depth ${DEPTH} flows ${FLOWS} \
-    min 12000 max 24000 probability .12 redflowlimit 32000 \
+    min 24000 max 48000 probability .12 redflowlimit 64000 \
     ${PERTURB} ecn headdrop harddrop divisor 16384
 
 tc filter add dev $DEV parent 1:0 protocol ip prio 1 handle 1 fw classid 1:11
