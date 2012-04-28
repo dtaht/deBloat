@@ -208,19 +208,53 @@ tc qdisc add dev $DEV parent 1:13 handle 130: sfq \
     min 24000 max 48000 probability .12 redflowlimit 64000 \
     ${PERTURB} ecn headdrop harddrop divisor 16384
 
-tc filter add dev $DEV parent 1:0 protocol ip prio 1 handle 1 fw classid 1:11
-tc filter add dev $DEV parent 1:0 protocol ip prio 2 handle 2 fw classid 1:12
-tc filter add dev $DEV parent 1:0 protocol ip prio 3 handle 3 fw classid 1:13
+#tc filter add dev $DEV parent 1:0 protocol ip prio 4 u32 match u8 8 \
+#fc at 1 classid 1:13
+#for i in `seq 4 254`
+#do
+#a=`printf "tc filter add dev $DEV protocol ip parent 1:0 prio %d u32 match u8 0x%x 0x03 at 1 classid 1:13" $i $i`
+#$a
+#a=`printf "tc filter add dev $DEV protocol ip parent 1:0 prio %d u32 match ip tos 0x%x 0xfc classid 1:13" $i $i`
+#$a
+#done
+
+# This could be a complete diffserv implementation
+
+tc filter add dev $DEV protocol ip parent 1:0 prio 1 u32 match ip tos 0x00 0xfc classid 1:12 # CS0
+tc filter add dev $DEV protocol ip parent 1:0 prio 2 u32 match ip tos 0x10 0xfc classid 1:11 # Low Delay
+tc filter add dev $DEV protocol ip parent 1:0 prio 3 u32 match ip tos 0x20 0xfc classid 1:13 # CS1 Bulk
+tc filter add dev $DEV protocol ip parent 1:0 prio 4 u32 match ip tos 0x88 0xfc classid 1:11 # AF41
+tc filter add dev $DEV protocol ip parent 1:0 prio 5 u32 match ip tos 0x90 0xfc classid 1:11 # AF42
+tc filter add dev $DEV protocol ip parent 1:0 prio 21 u32 match ip tos 0x98 0xfc classid 1:11 # AF43
+tc filter add dev $DEV protocol ip parent 1:0 prio 7 u32 match ip tos 0x28 0xfc classid 1:12 # AF11
+tc filter add dev $DEV protocol ip parent 1:0 prio 8 u32 match ip tos 0x30 0xfc classid 1:12 # AF12
+tc filter add dev $DEV protocol ip parent 1:0 prio 9 u32 match ip tos 0x38 0xfc classid 1:13 # AF13
+tc filter add dev $DEV protocol ip parent 1:0 prio 10 u32 match ip tos 0x48 0xfc classid 1:12 # AF21
+tc filter add dev $DEV protocol ip parent 1:0 prio 11 u32 match ip tos 0x58 0xfc classid 1:12 # AF22
+tc filter add dev $DEV protocol ip parent 1:0 prio 12 u32 match ip tos 0x58 0xfc classid 1:13 # AF23
+tc filter add dev $DEV protocol ip parent 1:0 prio 13 u32 match ip tos 0x68 0xfc classid 1:12 # AF31
+tc filter add dev $DEV protocol ip parent 1:0 prio 14 u32 match ip tos 0x70 0xfc classid 1:12 # AF32
+tc filter add dev $DEV protocol ip parent 1:0 prio 15 u32 match ip tos 0x78 0xfc classid 1:13 # AF33
+
+tc filter add dev $DEV protocol ip parent 1:0 prio 16 u32 match ip tos 0x40 0xfc classid 1:13 # CS2
+tc filter add dev $DEV protocol ip parent 1:0 prio 17 u32 match ip tos 0x60 0xfc classid 1:13 # CS3
+tc filter add dev $DEV protocol ip parent 1:0 prio 18 u32 match ip tos 0x80 0xfc classid 1:13 # CS4
+tc filter add dev $DEV protocol ip parent 1:0 prio 19 u32 match ip tos 0xa0 0xfc classid 1:13 # CS5
+tc filter add dev $DEV protocol ip parent 1:0 prio 9 u32 match ip tos 0xc0 0xfc classid 1:11 # CS6
+tc filter add dev $DEV protocol ip parent 1:0 prio 6 u32 match ip tos 0xe0 0xfc classid 1:11 # CS7
+
+#tc filter add dev $DEV parent 1:0 protocol ip prio 3 handle 1 fw classid 1:12
+#tc filter add dev $DEV parent 1:0 protocol ip prio 4 handle 2 fw classid 1:13
 
 # ipv6 support. Note that the handle indicates the fw mark bucket that is looked for
 
-tc filter add dev $DEV parent 1:0 protocol ipv6 prio 4 handle 1 fw classid 1:11
-tc filter add dev $DEV parent 1:0 protocol ipv6 prio 5 handle 2 fw classid 1:12
-tc filter add dev $DEV parent 1:0 protocol ipv6 prio 6 handle 3 fw classid 1:13
+#tc filter add dev $DEV parent 1:0 protocol ipv6 prio 8 handle 1 fw classid 1:11
+#tc filter add dev $DEV parent 1:0 protocol ipv6 prio 9 handle 2 fw classid 1:12
+#tc filter add dev $DEV parent 1:0 protocol ipv6 prio 10 handle 3 fw classid 1:13
 
 # Arp traffic
 
-tc filter add dev $DEV parent 1:0 protocol arp prio 7 handle 1 fw classid 1:11
+#tc filter add dev $DEV parent 1:0 protocol arp prio 7 handle 1 fw classid 1:11
 
 ifconfig ifb0 up
 
