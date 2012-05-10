@@ -131,12 +131,9 @@ tc class add dev $IFACE parent 1:1 classid 1:13 htb rate ${BK_RATE}kbit ceil ${B
 # A depth of 16 is better at low rates, but no lower. I'd argue for a floor of 22
 # Packet aggregation suggests 42-64.
 
-tc qdisc add dev $IFACE parent 1:11 handle 110: sfq limit 200 depth 42 flows $FLOWS \
-min 3000 max 18000 probability .2 redflowlimit 32000 ${PERTURB} ecn headdrop harddrop
-tc qdisc add dev $IFACE parent 1:12 handle 120: sfq limit 300 depth 42 flows $FLOWS \
-min 3000 max 18000 probability .2 redflowlimit 32000 ${PERTURB} ecn headdrop harddrop
-tc qdisc add dev $IFACE parent 1:13 handle 130: sfq limit 150 depth 42 flows $FLOWS \
-min 3000 max 18000 probability .2 redflowlimit 32000 ${PERTURB} ecn headdrop harddrop
+tc qdisc add dev $IFACE parent 1:11 handle 110: codel
+tc qdisc add dev $IFACE parent 1:12 handle 120: codel
+tc qdisc add dev $IFACE parent 1:13 handle 130: codel
 
 tc filter add dev $IFACE parent 1:0 protocol ip prio 1 handle 1 fw classid 1:11
 tc filter add dev $IFACE parent 1:0 protocol ip prio 2 handle 2 fw classid 1:12
@@ -193,20 +190,9 @@ tc class add dev $DEV parent 1:1 classid 1:13 htb rate ${BK_RATE}kibit ceil ${BE
 # I'd argue for a floor of 22 Packet aggregation suggests 
 # ${DEPTH}-64.
 
-tc qdisc add dev $DEV parent 1:11 handle 110: sfq \
-    limit 200 depth ${DEPTH} flows $FLOWS \
-    min 24000 max 48000 probability .12 redflowlimit 64000 \
-    ${PERTURB} ecn headdrop harddrop divisor 16384
-
-tc qdisc add dev $DEV parent 1:12 handle 120: sfq \
-    limit 300 depth ${DEPTH} flows ${FLOWS} \
-    min 24000 max 48000 probability .12 redflowlimit 64000 \
-    ${PERTURB} ecn headdrop harddrop divisor 16384
-
-tc qdisc add dev $DEV parent 1:13 handle 130: sfq \
-    limit 150 depth ${DEPTH} flows ${FLOWS} \
-    min 24000 max 48000 probability .12 redflowlimit 64000 \
-    ${PERTURB} ecn headdrop harddrop divisor 16384
+tc qdisc add dev $DEV parent 1:11 handle 110: codel
+tc qdisc add dev $DEV parent 1:12 handle 120: codel
+tc qdisc add dev $DEV parent 1:13 handle 130: codel 
 
 #tc filter add dev $DEV parent 1:0 protocol ip prio 4 u32 match u8 8 \
 #fc at 1 classid 1:13
