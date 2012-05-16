@@ -34,9 +34,9 @@ env = { ["TC"] = "/sbin/tc",
 	["LSMOD"] = "/sbin/lsmod",
 	["IPTABLES"] = "/sbin/iptables",
 	["IP6TABLES"] = "/sbin/ip6tables",
-	["MDISC"] = "pfifo_head_drop limit 32",
-	["BIGDISC"] =  "pfifo_head_drop limit 32",
-	["NORMDISC"] = "pfifo_head_drop limit 32",
+	["MDISC"] = "codel",
+	["BIGDISC"] =  "codel",
+	["NORMDISC"] = "codel",
 	["BINS"] = 2048,
 	["DEPTH"] = 24,
 	["QMODEL"] = "codel",
@@ -330,7 +330,8 @@ BINS=env.BINS
 MULTICAST=BINS+1
 DEFAULTB=BINS+2
 
-PREREQS = { "sch_qfq", "cls_u32", "cls_flow", "sch_sfq", "sch_red", "sch_htb", "cls_fw" }
+PREREQS = { "sch_qfq", "sch_codel", "sch_fq_codel", "cls_u32", "cls_flow", 
+	    "sch_sfq", "sch_red", "sch_htb", "cls_fw" }
 
 -- we can get more complex later
 
@@ -522,6 +523,10 @@ function bound(v,min,max)
    return v
 end
 
+function rbound(v,min,max)
+	return round(bound(v,min,max))
+end
+
 local function lowrate(rate)
    if rate < 15000 then return true else return false end
 end
@@ -572,7 +577,7 @@ local function redflowlimit(up,down)
    pkt_per_ms_best = bytes_per_ms/(64 + OVERHEAD)
    local limit = round(pkt_per_ms_best * target)
    local perflow = round(pkt_per_ms_best)
-   local rlimit = bound(round(target * bytes_per_ms),1500,15000)
+   local rlimit = rbound(target * bytes_per_ms,1500,15000)
    local depth = 10
    return limit,rlimit,depth,pkt_per_ms_worst
 end
@@ -591,7 +596,7 @@ local function chokelimit(up,down)
    pkt_per_ms_best = bytes_per_ms/(64 + OVERHEAD)
    local limit = round(pkt_per_ms_best * target)
    local perflow = round(pkt_per_ms_best)
-   local rlimit = bound(round(target * bytes_per_ms),1500,15000)
+   local rlimit = rbound(target * bytes_per_ms,1500,15000)
    local depth = 10
    return limit,rlimit,depth,pkt_per_ms_worst
 end
@@ -1012,8 +1017,32 @@ end
 
 local function htb_sfq_red(queues)
    qa("root handle 1: est 1sec 8sec htb default 1")
-   cap("1: classid 1:1 est 1sec 8sec htb rate %dkbit mtu 1500 quantum 1514",env.UPLINK)
+   cap("1: classid 1:1 est 1sec 8sec htb rate %dkibit mtu 1500 quantum 1514",env.UPLINK)
    qap("1:1 handle 10: est 1sec 4sec sfq limit 200 headdrop flows 500 divisor 16384 redflowlimit 24000 min 3000 max 18000 depth 16 probability 0.12 ecn harddrop")
+end
+
+-- This simplified model is intended to work best with the out of tree
+-- sfq that has enqueuing to head. It merely looks for background traffic
+-- and tosses that into a separate bucket.
+
+-- Rate and ceil
+
+local function htb_sfq_red2(queues)
+   BKTRAFFIC=rbound(env.UPLINK *.05, 32, env.UPLINK*.90)
+   BKTRAFFIC_MAX=rbound(env.UPLINK*.85,32,env.UPLINK*.90)
+   MAXTRAFFIC=round(env.UPLINK-BKTRAFFIC)
+   qa("root handle 1:0 est 1sec 8sec htb default 1")
+   cap("1:0 classid 10:1 est 1sec 8sec htb prio 1 rate %dkbps ceil %dkbps mtu 1500 quantum 1514",
+	env.UPLINK, env.UPLINK)
+   cap("10:1 classid 11:1 est 1sec 8sec htb prio 2 rate %dkbps ceil %dkbps mtu 1500 quantum 1514",
+	BKTRAFFIC,BKTRAFFIC_MAX)
+   cap("10:1 classid 12:1 est 1sec 8sec htb prio 2 rate %dkbps ceil %dkbps mtu 1500 quantum 1514",
+	BKTRAFFIC,BKTRAFFIC_MAX)
+   qap("10:1 handle 12:0 est 1sec 4sec sfq limit 300 headdrop flows 2000 divisor 16384 redflowlimit 24000 min 3000 max 18000 depth 43 probability 0.12 ecn harddrop")
+   qap("11:1 handle 20:0 est 1sec 4sec sfq limit 300 headdrop flows 2000 divisor 16384 redflowlimit 64000 min 3000 max 18000 depth 43 probability 0.12 ecn harddrop")
+   fap("1:1 prio 10 u32 match ip tos 0x08 0xff flowid 11:1")
+--   fap("1:0 prio 11 u32 match ipv6 tos 0x08 0xfc flowid 1:2")
+
 end
 
 local function htb_sfq_red_cero(queues)
@@ -1214,8 +1243,12 @@ end
 
 -- Various models
 
+local function wireless_fq_codel()
+   wireless_setup("fq_codel quantum 3028")
+end
+
 local function wireless_codel()
-   wireless_setup("codel ecn")
+   wireless_setup("codel quantum 3028")
 end
 
 local function wireless_sfq()
@@ -1498,10 +1531,13 @@ local function ethernet_qfq(queues)
    model_qfq_subdisc(10)
 end
 
-local function ethernet_codel(queues)
-	 qa("handle %x root codel ecn",10)
+local function ethernet_fq_codel(queues)
+	 qa("handle %x root fq_codel",10)
 end
 
+local function ethernet_codel(queues)
+	 qa("handle %x root codel",10)
+end
 local function ethernet_sfq(queues)
 	 qa("handle %x root sfq",10)
 end
@@ -1786,11 +1822,12 @@ WCALLBACKS = { ["qfq"] = wireless_qfq,
 	       ["qfqred"] = wireless_qfqr,
 	       ["red"] = wireless_red,
 	       ["ared"] = wireless_ared,
-	       ["codel"] = wireless_codel,
 	       ["sfq"] = wireless_sfq,
 	       ["efq"] = wireless_efq,
 	       ["sfqred"] = wireless_efqr, 
 	       ["sfqr"] = wireless_sfqr, 
+	       ["codel"] = wireless_codel,
+	       ["fq_codel"] = wireless_fq_codel,
 	       ["htb_sfq_red"] = unsupported_shaper,
 	       ["oopenwrt"] = unsupported_shaper, 
 	       ["owshaper"] = unsupported_shaper,
@@ -1803,13 +1840,15 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["qfqred"] = ethernet_qfqr,
 	       ["red"] = ethernet_red,
 	       ["ared"] = ethernet_ared,
-	       ["codel"] = ethernet_codel,
 	       ["sfq"] = ethernet_sfq,
+	       ["codel"] = ethernet_codel,
+	       ["fq_codel"] = ethernet_fq_codel,
 	       ["efq"] = ethernet_efq,
 	       ["sfqred"] = ethernet_efqr,
 	       ["htb_qfq_sfqred"] = htb_qfq_sfqred,
 	       ["htb_qfq_drop_head"] = htb_qfq_drop_head,
 	       ["htb_sfq_red"] = htb_sfq_red,
+	       ["htb_sfq_red2"] = htb_sfq_red2,
 	       ["htb_sfq_red_cero"] = htb_sfq_red_cero,
 	       ["tbf"] = tbf,
 	       ["htb_sfb"] = htb_sfb,

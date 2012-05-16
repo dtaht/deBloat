@@ -18,16 +18,16 @@
 # to setup various other parameters such as BQL and ethtool.
 # (And that the debloat script has setup the other interfaces)
 
-[ -e /etc/functions.sh ] && . /etc/functions.sh || . ./functions.sh
+#[ -e /etc/functions.sh ] && . /etc/functions.sh || . ./functions.sh
 
 # You need to jiggle these parameters
 
-UPLINK=2000
-DOWNLINK=20000
+UPLINK=100000
+DOWNLINK=93000
 DEV=ifb0
-IFACE=ge00
+IFACE=eth0
 DEPTH=42
-TC=/usr/sbin/tc
+TC=~d/git/iproute2-codel/tc/tc
 FLOWS=8000
 PERTURB="perturb 0" # Permutation is costly, disable
 FLOWS=16000 # 
@@ -131,9 +131,9 @@ tc class add dev $IFACE parent 1:1 classid 1:13 htb rate ${BK_RATE}kbit ceil ${B
 # A depth of 16 is better at low rates, but no lower. I'd argue for a floor of 22
 # Packet aggregation suggests 42-64.
 
-tc qdisc add dev $IFACE parent 1:11 handle 110: codel 
-tc qdisc add dev $IFACE parent 1:12 handle 120: codel 
-tc qdisc add dev $IFACE parent 1:13 handle 130: codel
+tc qdisc add dev $IFACE parent 1:11 handle 110: fq_codel 
+tc qdisc add dev $IFACE parent 1:12 handle 120: fq_codel 
+tc qdisc add dev $IFACE parent 1:13 handle 130: fq_codel
 
 tc filter add dev $IFACE parent 1:0 protocol ip prio 1 handle 1 fw classid 1:11
 tc filter add dev $IFACE parent 1:0 protocol ip prio 2 handle 2 fw classid 1:12
@@ -190,9 +190,9 @@ tc class add dev $DEV parent 1:1 classid 1:13 htb rate ${BK_RATE}kibit ceil ${BE
 # I'd argue for a floor of 22 Packet aggregation suggests 
 # ${DEPTH}-64.
 
-tc qdisc add dev $DEV parent 1:11 handle 110: codel
-tc qdisc add dev $DEV parent 1:12 handle 120: codel
-tc qdisc add dev $DEV parent 1:13 handle 130: codel
+tc qdisc add dev $DEV parent 1:11 handle 110: fq_codel target 500us interval 10ms
+tc qdisc add dev $DEV parent 1:12 handle 120: fq_codel target 500us interval 10ms
+tc qdisc add dev $DEV parent 1:13 handle 130: fq_codel target 500us interval 10ms
 
 #tc filter add dev $DEV parent 1:0 protocol ip prio 4 u32 match u8 8 \
 #fc at 1 classid 1:13
