@@ -1,0 +1,13 @@
+*  
+Variables under test
+
+Hardware queues
+Distance
+
+* Single Queue Behavior
+** pfifo_fast
+** pfifo_fast with txqueuelen 30
+** fq_codel
+** codel
+
+* Multi Queue Behavior
