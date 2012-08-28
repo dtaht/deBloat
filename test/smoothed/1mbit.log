@@ -1,0 +1,51 @@
+d@ida:~$ tc -s class show dev eth2
+class htb 1:11 parent 1:1 leaf 30: prio 0 rate 1000Kbit ceil 1000Kbit burst 1600b cburst 1600b 
+ Sent 5505782 bytes 49050 pkt (dropped 0, overlimits 0 requeues 0) 
+ rate 903144bit 1002pps backlog 0b 248p requeues 0 
+ lended: 49050 borrowed: 0 giants: 0
+ tokens: -8835 ctokens: -8835
+
+class htb 1:1 root rate 4000Kbit ceil 4000Kbit burst 1600b cburst 1600b 
+ Sent 5505782 bytes 49050 pkt (dropped 0, overlimits 0 requeues 0) 
+ rate 903144bit 1002pps backlog 0b 0p requeues 0 
+ lended: 0 borrowed: 0 giants: 0
+ tokens: 47750 ctokens: 47750
+
+
+class fq_codel 30:46 parent 30: 
+ (dropped 317, overlimits 0 requeues 0) 
+ backlog 3498b 53p requeues 0 
+  deficit 1458 count 317 lastcount 1 ldelay 106.6ms dropping drop_next -36.5ms
+class fq_codel 30:1ef parent 30: 
+ (dropped 2, overlimits 0 requeues 0) 
+ backlog 3028b 2p requeues 0 
+  deficit 1514 count 2 lastcount 1 ldelay 202.3ms dropping drop_next -27.3ms
+class fq_codel 30:261 parent 30: 
+ (dropped 23, overlimits 0 requeues 0) 
+ backlog 1056b 16p requeues 0 
+  deficit 1464 count 23 lastcount 1 ldelay 8.2ms dropping drop_next -67.0ms
+class fq_codel 30:27b parent 30: 
+ (dropped 2, overlimits 0 requeues 0) 
+ backlog 1514b 1p requeues 0 
+  deficit 1514 count 2 lastcount 1 ldelay 101.0ms dropping drop_next -15.1ms
+class fq_codel 30:2b7 parent 30: 
+ (dropped 432, overlimits 0 requeues 0) 
+ backlog 6930b 105p requeues 0 
+  deficit 1504 count 432 lastcount 1 ldelay 194.6ms dropping drop_next -13.1ms
+class fq_codel 30:2bd parent 30: 
+ (dropped 218, overlimits 0 requeues 0) 
+ backlog 4554b 69p requeues 0 
+  deficit -20 count 218 lastcount 1 ldelay 100.7ms dropping drop_next 6.2ms
+class fq_codel 30:3a6 parent 30: 
+ (dropped 3, overlimits 0 requeues 0) 
+ backlog 1514b 1p requeues 0 
+  deficit 1514 count 3 lastcount 1 ldelay 101.1ms dropping drop_next -34.6ms
+
+9.66
+9.46
+9.55
+9.42
+0.09
+0.09
+0.10
+0.09

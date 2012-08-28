@@ -1,0 +1,6 @@
+netperf -l 120 -H 172.20.42.65 -t TCP_STREAM &
+netperf -l 120 -H 172.20.42.65 -t TCP_STREAM &
+netperf -l 120 -H 172.20.42.65 -t TCP_STREAM &
+netperf -l 120 -H 172.20.42.65 -t TCP_STREAM &
+
+

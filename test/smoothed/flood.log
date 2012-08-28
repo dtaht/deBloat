@@ -1,0 +1,36 @@
+d@ida:~$ tc -s class show dev eth2 | grep -A 4 257
+class fq_codel 40:257 parent 40: 
+ (dropped 23660, overlimits 0 requeues 0) 
+ backlog 176911b 119p requeues 0 
+  deficit -220 count 23660 lastcount 1 ldelay 48.0ms dropping drop_next -12.4ms
+class fq_codel 40:267 parent 40: 
+d@ida:~$ tc -s class show dev eth2 | grep -A 4 257
+class fq_codel 40:257 parent 40: 
+ (dropped 3, overlimits 0 requeues 0) 
+ backlog 175397b 118p requeues 0 
+  deficit -1484 count 3 lastcount 1 ldelay 316.0ms dropping drop_next 661us
+class fq_codel 40:267 parent 40: 
+d@ida:~$ tc -s class show dev eth2 | grep -A 4 257
+class fq_codel 40:257 parent 40: 
+ (dropped 13, overlimits 0 requeues 0) 
+ backlog 137547b 93p requeues 0 
+  deficit -898 count 13 lastcount 1 ldelay 680.8ms dropping drop_next -18.5ms
+class fq_codel 40:267 parent 40: 
+d@ida:~$ tc -s class show dev eth2 | grep -A 4 257
+class fq_codel 40:257 parent 40: 
+ (dropped 45, overlimits 0 requeues 0) 
+ backlog 187509b 126p requeues 0 
+  deficit -1372 count 45 lastcount 1 ldelay 1.3s dropping drop_next 1.4ms
+class fq_codel 40:267 parent 40: 
+d@ida:~$ tc -s class show dev eth2 | grep -A 4 257
+class fq_codel 40:257 parent 40: 
+ (dropped 81, overlimits 0 requeues 0) 
+ backlog 105324b 71p requeues 0 
+  deficit -1466 count 81 lastcount 1 ldelay 559.0ms dropping drop_next -5.1ms
+class fq_codel 40:267 parent 40: 
+d@ida:~$ tc -s class show dev eth2 | grep -A 4 257
+class fq_codel 40:257 parent 40: 
+ (dropped 167, overlimits 0 requeues 0) 
+ backlog 33737b 23p requeues 0 
+  deficit -1285 count 167 lastcount 1 ldelay 587.0ms dropping drop_next 2.7ms
+

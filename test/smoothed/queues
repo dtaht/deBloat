@@ -1,0 +1,6 @@
+netperf -Y CS5,CS5 -l 120 -H 172.20.42.65 -t TCP_STREAM &
+netperf -Y EF,EF -l 120 -H 172.20.42.65 -t TCP_STREAM &
+netperf -Y CS1,CS1 -l 120 -H 172.20.42.65 -t TCP_STREAM &
+netperf -Y CS0,CS0 -l 120 -H 172.20.42.65 -t TCP_STREAM &
+
+

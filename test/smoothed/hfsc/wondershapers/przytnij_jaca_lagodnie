@@ -1,0 +1,10 @@
+#!/bin/bash
+tc qdisc add dev eth3 root handle 1: hfsc default 2
+tc class add dev eth3 parent 1: classid 1:1 hfsc sc rate 200kbit ul rate 2000kbit 
+tc class add dev eth3 parent 1: classid 1:2 hfsc sc rate 240kbit ul rate 2200kbit 
+tc qdisc add dev eth3 parent 1:1 handle 1: sfq perturb 1
+ 
+iptables -t mangle --new-chain THESHAPER
+iptables -t mangle --insert POSTROUTING -o eth3 -j THESHAPER
+iptables -t mangle -A THESHAPER --src 83.18.229.189 -j CLASSIFY --set-class 1:1
+iptables -t mangle -A THESHAPER --dst 83.18.229.189 -j CLASSIFY --set-class 1:1

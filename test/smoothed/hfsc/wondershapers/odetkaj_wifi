@@ -1,0 +1,9 @@
+#!/bin/bash
+tc class del dev eth2 parent 1: classid 1:1 hfsc sc rate 100kbit ul rate 1000kbit 
+tc class del dev eth2 parent 1: classid 1:2 hfsc sc rate 200kbit ul rate 2000kbit 
+tc qdisc del dev eth2 root handle 1: hfsc default 2
+
+#iptables -t mangle --new-chain THESHAPER
+#iptables -t mangle --insert POSTROUTING -o eth2 -j THESHAPER
+iptables -t mangle -D THESHAPER --src 83.18.229.187 -j CLASSIFY --set-class 1:1
+iptables -t mangle -D THESHAPER --dst 83.18.229.187 -j CLASSIFY --set-class 1:1
