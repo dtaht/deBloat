@@ -40,7 +40,7 @@ env = { ["TC"] = "/sbin/tc",
 	["BINS"] = 2048,
 	["DEPTH"] = 24,
 	["QMODEL"] = "codel",
-	["MAX_HWQ_BYTES"] = 3000,
+	["MAX_HWQ_BYTES"] = 3028,
 	["ECNMASK"] = 0xfc,
 	["EST_MIN"] = 1,
 	["EST_MAX"] = 4,
@@ -1244,7 +1244,7 @@ end
 -- Various models
 
 local function wireless_fq_codel()
-   wireless_setup("fq_codel quantum 3028")
+   wireless_setup("efq_codel ")
 end
 
 local function wireless_codel()

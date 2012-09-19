@@ -1,0 +1,22 @@
+#!/bin/sh
+
+SERVER=192.168.10.1
+DUR=60
+
+#sudo tcpdump -i wlan0 -w/root/sfqnewboth.cap &
+#sleep 4
+echo > fqcodelstream.log
+echo > fqcodelmaerts.log
+
+./tracklog $DUR > fqcodel_backlog.log &
+for i in `seq 1 75`
+do
+#netperf -l $DUR -4 -Y CS1,CS1 -H $SERVER -t TCP_STREAM >> fqcodelmaerts.log &
+#netperf -l $DUR -4 -Y CS1,CS1 -H $SERVER -t TCP_MAERTS >> fqcodelstream.log &
+netperf -l $DUR -4 -H $SERVER -t TCP_STREAM | tail -1 | awk '{print $5}' >> fqcodelmaerts.log &
+netperf -l $DUR -4 -H $SERVER -t TCP_MAERTS | tail -1 | awk '{print $5}' >> fqcodelstream.log &
+done
+ping $SERVER &
+sleep 90
+killall ping
+killall tcpdump
