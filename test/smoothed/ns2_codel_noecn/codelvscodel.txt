@@ -1,0 +1,3 @@
+80ms for codel
+14ms for ns2_codel
+

@@ -16,9 +16,9 @@ ${TC} class add dev $DEV parent 1:1 classid 1:10 htb rate $RATE1 ceil $RATE
 ${TC} class add dev $DEV parent 1:1 classid 1:11 htb rate $RATE2
 ${TC} class add dev $DEV parent 1:1 classid 1:12 htb rate $RATE3 
 
-${TC} qdisc add dev $DEV parent 1:10 handle 20: fq_codel noecn quantum 256 flows 64000
-${TC} qdisc add dev $DEV parent 1:11 handle 30: fq_codel noecn quantum 256 flows 64000
-${TC} qdisc add dev $DEV parent 1:12 handle 40: fq_codel noecn quantum 256 flows 64000
+${TC} qdisc add dev $DEV parent 1:10 handle 20: wfq_codel noecn quantum 256 flows 64000
+${TC} qdisc add dev $DEV parent 1:11 handle 30: wfq_codel noecn quantum 256 flows 64000
+${TC} qdisc add dev $DEV parent 1:12 handle 40: wfq_codel noecn quantum 256 flows 64000
 
 #${TC} filter add dev $DEV parent 1:0 protocol ip u32 \
 #	ma${TC}h ip protocol 17 0xff flowid 1:12

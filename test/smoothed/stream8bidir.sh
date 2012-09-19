@@ -1,7 +1,7 @@
 #!/bin/sh
 
-SERVER1=172.20.11.11
-SERVER2=172.20.11.1
+SERVER1=192.168.10.1
+SERVER2=$SERVER1
 
 (
 netperf -l 60 -H $SERVER1 -t TCP_MAERTS | tail -1 &
