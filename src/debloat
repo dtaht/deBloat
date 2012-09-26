@@ -23,7 +23,8 @@ params = { "MDISC", "BIGDISC", "NORMDISC", "BINS", "MAX_HWQ_BYTES",
 	   "IP6TABLES", "PINGOPT", "FLOWS", "TSO", "BURST", "IPV6",
 	   "OVERHEAD", "LINKLAYER", "MPU", "PPPOE", "ADSL",
 	   "NOPRIOHOSTSRC","NOPRIOHOSTDST","NOPRIOPORTSRC", 
-	   "NOPRIOPORTDST", "EST_MIN", "EST_MAX", "HEADDROP", "ECNMASK" }
+	   "NOPRIOPORTDST", "EST_MIN", "EST_MAX", "HEADDROP", "ECNMASK",
+	   "qlen_vo", "qlen_vi", "qlen_be", "qlen_bk", "CODEL_LL_QUANTUM" }
 
 -- Useful defaults
 
@@ -39,16 +40,24 @@ env = { ["TC"] = "/sbin/tc",
 	["NORMDISC"] = "codel",
 	["BINS"] = 2048,
 	["DEPTH"] = 24,
-	["QMODEL"] = "codel",
-	["MAX_HWQ_BYTES"] = 3028,
+	["QMODEL"] = "sfq",
+	["MAX_HWQ_BYTES"] = 3000,
 	["ECNMASK"] = 0xfc,
 	["EST_MIN"] = 1,
 	["EST_MAX"] = 4,
 	["IPV6"] = true,
 	["LINKLAYER"] = "ethernet",
 	["DEBLOATLOG"] = "/dev/null",
-	["MTU"] = 1500
-     }
+	["qlen_vo"] = 2,
+	["qlen_vi"] = 4,
+	["qlen_be"] = 12,
+	["qlen_bk"] = 12,
+	["MTU"] = 1500,
+	["CODEL_LL_QUANTUM"] = 1000
+	}
+
+wireless_debug = "/sys/kernel/debug/ieee80211/"
+qlens = { "qlen_vo", "qlen_vi", "qlen_bk", "qlen_be" }
 
 -- various shortcuts for commonly used functions
 
@@ -331,7 +340,8 @@ MULTICAST=BINS+1
 DEFAULTB=BINS+2
 
 PREREQS = { "sch_qfq", "sch_codel", "sch_fq_codel", "cls_u32", "cls_flow", 
-	    "sch_sfq", "sch_red", "sch_htb", "cls_fw" }
+	    "sch_sfq", "sch_red", "sch_htb", "cls_fw", "sch_efq_codel",
+	    "sch_ns2_codel", "sch_nfq_codel" }
 
 -- we can get more complex later
 
@@ -686,13 +696,17 @@ function offloads(iface)
 	    return nil
 	 end
       end
-	 
+
       for i,v in ipairs(s) do
 	 local h = v:split(":")
 	 local j = h[1]:split(" ")
+	 if # j > 1 then
 	 if j[1] ~= "Offload" then
+	 if # h > 1 then
 	    t[h[1]:trim()] = h[2]:trim()
+	 end
 	    -- FIXME: should probably change 'off' and 'on' to false and true
+	 end
 	 end
       end
    end
@@ -819,6 +833,7 @@ local function ethernet_setup(iface)
       ethtool("-K %s gso off",iface)
       ethtool("-K %s tso off",iface)
       ethtool("-K %s ufo off",iface)
+      ethtool("-K %s gro off",iface)
    end
    return queues
 end
@@ -1200,9 +1215,37 @@ end
 local function wireless_setup(queuetype)
    qa("handle 1 root mq")
    qap("1:1 handle %x %s",VO, queuetype)
-   qap("1:2 handle %x %s",VI, queuetype)
-   qap("1:3 handle %x %s",BE, queuetype)
+   qap("1:2 handle %x %s ",VI, queuetype)
+   qap("1:3 handle %x %s ",BE, queuetype)
    qap("1:4 handle %x %s",BK, queuetype)
+   wireless_filters()
+end
+
+
+local function wireless_qlen_change(base) 
+	for i=1, # qlens do
+		q = qlens[i]
+		d =  sf("%s/%s",base,q)
+		qlen = slurpf(d)
+		if qlen ~= nill and qlen ~= env[q] then
+			spewf(d,env[q])
+		end
+	end
+end
+
+local function wireless_qlen() 
+-- Sure we could inspect things here but whatever
+	wireless_qlen_change(sf("%s/%s",wireless_debug,"phy0/ath9k"))
+	wireless_qlen_change(sf("%s/%s",wireless_debug,"phy1/ath9k"))
+	wireless_qlen_change(sf("%s/%s",wireless_debug,"phy2/ath9k"))
+end
+
+local function wireless_setup_ll(queuetype)
+   qa("handle 1 root mq")
+   qap("1:1 handle %x %s limit 800 noecn target 10ms quantum 500",VO, queuetype)
+   qap("1:2 handle %x %s limit 800 ecn quantum %d",VI, queuetype, env.CODEL_LL_QUANTUM)
+   qap("1:3 handle %x %s limit 1000 ecn quantum %d",BE, queuetype, env.CODEL_LL_QUANTUM)
+   qap("1:4 handle %x %s limit 1000 noecn ",BK, queuetype)
    wireless_filters()
 end
 
@@ -1243,12 +1286,36 @@ end
 
 -- Various models
 
+local function wireless_efq_codel()
+   wireless_setup("efq_codel limit 1000 quantum 1000")
+end
+
+local function wireless_efq_codel_ll()
+   wireless_setup_ll("efq_codel")
+end
+
+local function wireless_nfq_codel()
+   wireless_setup("nfq_codel limit 1000 quantum 1000")
+end
+
+local function wireless_nfq_codel_ll()
+   wireless_setup_ll("nfq_codel")
+end
+
 local function wireless_fq_codel()
-   wireless_setup("efq_codel ")
+   wireless_setup("fq_codel limit 1000 quantum 1000")
+end
+
+local function wireless_fq_codel_ll()
+   wireless_setup_ll("fq_codel")
 end
 
 local function wireless_codel()
-   wireless_setup("codel quantum 3028")
+   wireless_setup("codel limit 1000")
+end
+
+local function wireless_ns2_codel()
+   wireless_setup("ns2_codel limit 1000")
 end
 
 local function wireless_sfq()
@@ -1531,12 +1598,35 @@ local function ethernet_qfq(queues)
    model_qfq_subdisc(10)
 end
 
+local function ethernet_efq_codel(queues)
+	 qa("handle %x root efq_codel limit 1000 ",10)
+end
+
+local function ethernet_efq_codel_ll(queues)
+	 qa("handle %x root efq_codel limit 1000 quantum 1000 ",10)
+end
+
+local function ethernet_nfq_codel(queues)
+	 qa("handle %x root nfq_codel limit 1000 ",10)
+end
+
+local function ethernet_nfq_codel_ll(queues)
+	 qa("handle %x root nfq_codel limit 1000 quantum 1000 ",10)
+end
+
 local function ethernet_fq_codel(queues)
-	 qa("handle %x root fq_codel",10)
+	 qa("handle %x root fq_codel limit 1000 ",10)
+end
+
+local function ethernet_fq_codel_ll(queues)
+	 qa("handle %x root fq_codel limit 1000 quantum 1000 ",10)
 end
 
 local function ethernet_codel(queues)
 	 qa("handle %x root codel",10)
+end
+local function ethernet_ns2_codel(queues)
+	 qa("handle %x root ns2_codel",10)
 end
 local function ethernet_sfq(queues)
 	 qa("handle %x root sfq",10)
@@ -1828,6 +1918,13 @@ WCALLBACKS = { ["qfq"] = wireless_qfq,
 	       ["sfqr"] = wireless_sfqr, 
 	       ["codel"] = wireless_codel,
 	       ["fq_codel"] = wireless_fq_codel,
+	       ["fq_codel_ll"] = wireless_fq_codel_ll,
+	       ["nfq_codel"] = wireless_nfq_codel,
+	       ["nfq_codel_ll"] = wireless_nfq_codel_ll,
+	       ["efq_codel"] = wireless_efq_codel,
+	       ["efq_codel_ll"] = wireless_efq_codel_ll,
+	       ["ns2_codel"] = wireless_ns2_codel,
+	       ["ns2_codel_ll"] = wireless_ns2_codel_ll,
 	       ["htb_sfq_red"] = unsupported_shaper,
 	       ["oopenwrt"] = unsupported_shaper, 
 	       ["owshaper"] = unsupported_shaper,
@@ -1842,7 +1939,13 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 	       ["ared"] = ethernet_ared,
 	       ["sfq"] = ethernet_sfq,
 	       ["codel"] = ethernet_codel,
+	       ["ns2_codel"] = ethernet_ns2_codel,
 	       ["fq_codel"] = ethernet_fq_codel,
+	       ["fq_codel_ll"] = ethernet_fq_codel_ll,
+	       ["nfq_codel"] = ethernet_nfq_codel,
+	       ["nfq_codel_ll"] = ethernet_nfq_codel_ll,
+	       ["efq_codel"] = ethernet_efq_codel,
+	       ["efq_codel_ll"] = ethernet_efq_codel_ll,
 	       ["efq"] = ethernet_efq,
 	       ["sfqred"] = ethernet_efqr,
 	       ["htb_qfq_sfqred"] = htb_qfq_sfqred,
@@ -1869,7 +1972,9 @@ ECALLBACKS = { ["qfq"] = ethernet_qfq,
 -- pingopt and argv processing too
 
 local function wireless(model)
-   if WCALLBACKS[model] ~= nil then 
+   print(model)
+   if WCALLBACKS[model] ~= nil then
+      wireless_qlen()
       return WCALLBACKS[model]() 
    else
       usage("AQM model not found")
