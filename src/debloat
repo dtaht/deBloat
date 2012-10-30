@@ -40,7 +40,7 @@ env = { ["TC"] = "/sbin/tc",
 	["NORMDISC"] = "codel",
 	["BINS"] = 2048,
 	["DEPTH"] = 24,
-	["QMODEL"] = "sfq",
+	["QMODEL"] = "fq_codel_ll",
 	["MAX_HWQ_BYTES"] = 3000,
 	["ECNMASK"] = 0xfc,
 	["EST_MIN"] = 1,
@@ -1615,11 +1615,11 @@ local function ethernet_nfq_codel_ll(queues)
 end
 
 local function ethernet_fq_codel(queues)
-	 qa("handle %x root fq_codel limit 1000 ",10)
+	 qa("handle %x root fq_codel",10)
 end
 
 local function ethernet_fq_codel_ll(queues)
-	 qa("handle %x root fq_codel limit 1000 quantum 1000 ",10)
+	 qa("handle %x root fq_codel quantum 1000 ",10)
 end
 
 local function ethernet_codel(queues)
