@@ -5,17 +5,17 @@
 
 LL=1 # go for lowest latency
 ECN=1 # enable ECN
-
 BQLLIMIT=3000 # at speeds below 100Mbit, 2 big packets is enough
+QDISC=fq_codel # There are multiple variants of fq_codel in testing
 
 [ -z "$IFACE" ] && echo error: $0 expects IFACE parameter in environment && exit 1
 [ -z `which ethtool` ] && echo error: ethtool is required && exit 1
 [ -z `which tc` ] && echo error: tc is required && exit 1
-# FIXME see if fq_codel is available. modprobe?
+# FIXME see if $QDISC is available. modprobe?
 # BUGS - need to detect bridges. 
 #      - Need filter to distribute across mq ethernet devices
 #      - needs an "undebloat" script for ifdown
-#      - should probably use a lower fq_codel limit at wifi and 10Gbit
+#      - should probably use a lower $QDISC limit at wifi and 10Gbit
 
 S=/sys/class/net
 FQ_OPTS=""
@@ -44,10 +44,10 @@ et() {
 
 wifi() {
 	tc qdisc add dev $IFACE handle 1 root mq 
-	tc qdisc add dev $IFACE parent 1:1 fq_codel $FQ_OPTS noecn
-	tc qdisc add dev $IFACE parent 1:2 fq_codel $FQ_OPTS
-	tc qdisc add dev $IFACE parent 1:3 fq_codel $FQ_OPTS
-	tc qdisc add dev $IFACE parent 1:4 fq_codel $FQ_OPTS noecn
+	tc qdisc add dev $IFACE parent 1:1 $QDISC $FQ_OPTS noecn
+	tc qdisc add dev $IFACE parent 1:2 $QDISC $FQ_OPTS
+	tc qdisc add dev $IFACE parent 1:3 $QDISC $FQ_OPTS
+	tc qdisc add dev $IFACE parent 1:4 $QDISC $FQ_OPTS noecn
 }
 
 # Hardware mq devices are special 
@@ -58,13 +58,13 @@ mq() {
 
 	for i in $S/$IFACE/queues/tx-*
 	do
-		tc qdisc add dev $IFACE parent 1:$I fq_codel $FQ_OPTS
+		tc qdisc add dev $IFACE parent 1:$I $QDISC $FQ_OPTS
 		I=`expr $I + 1`
 	done
 }
 
 fq_codel() {
-	tc qdisc add dev $IFACE root fq_codel $FQ_OPTS
+	tc qdisc add dev $IFACE root $QDISC $FQ_OPTS
 }
 
 fix_speed() {
