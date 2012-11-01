@@ -1,5 +1,5 @@
 #!/bin/bash
-# debloat.sh -	improves network latency by reduce excessive buffering 
+# debloat.sh -	improves network latency by reducing excessive buffering 
 #		and offloads on common devices and enabling fq_codel.
 # Copyright 2012 M D Taht. Released into the public domain.
 
@@ -18,7 +18,7 @@ QDISC=fq_codel # There are multiple variants of fq_codel in testing
 # BUGS - need to detect bridges. 
 #      - Need filter to distribute across mq ethernet devices
 #      - needs an "undebloat" script for ifdown
-#      - should probably use a lower $QDISC limit at wifi and 10Gbit
+#      - should probably use a lower $QDISC limit at wifi and <10Gbit
 
 S=/sys/class/net
 FQ_OPTS=""
