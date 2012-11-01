@@ -1,7 +1,10 @@
 #!/bin/bash
+# debloat.sh -	improves network latency by reduce excessive buffering 
+#		and offloads on common devices and enabling fq_codel.
+# Copyright 2012 M D Taht. Released into the public domain.
 
 # This script is presently targetted to go into 
-# /etc/network/ifup.d
+# /etc/network/ifup.d on debian derived systems
 
 LL=1 # go for lowest latency
 ECN=1 # enable ECN
