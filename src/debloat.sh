@@ -77,7 +77,7 @@ if [ -n "$SPEED" ]
 then
 	if [ "$SPEED" -lt 101 ]
 	then
-		for I in /sys/class/net/$IFACE/queues/tx-%d/byte_queue_limits/limit_max
+		for I in /sys/class/net/$IFACE/queues/tx-*/byte_queue_limits/limit_max
 		do
 		echo $BQLLIMIT > $I
 		done
