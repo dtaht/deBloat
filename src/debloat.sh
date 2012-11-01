@@ -6,15 +6,16 @@
 LL=1 # go for lowest latency
 ECN=1 # enable ECN
 
+BQLLIMIT=3000 # at speeds below 100Mbit, 2 big packets is enough
+
 [ -z "$IFACE" ] && echo error: $0 expects IFACE parameter in environment && exit 1
 [ -z `which ethtool` ] && echo error: ethtool is required && exit 1
 [ -z `which tc` ] && echo error: tc is required && exit 1
 # FIXME see if fq_codel is available. modprobe?
 # BUGS - need to detect bridges. 
-#      - Need to reduce BQL to 3000 for sub 101Mbit speeds.
-#      - Need filter to distribute across mq devices
+#      - Need filter to distribute across mq ethernet devices
 #      - needs an "undebloat" script for ifdown
-#      - should probably use a lower limit at wifi and sub101mbit
+#      - should probably use a lower fq_codel limit at wifi and 10Gbit
 
 S=/sys/class/net
 FQ_OPTS=""
@@ -66,12 +67,22 @@ fq_codel() {
 	tc qdisc add dev $IFACE root fq_codel $FQ_OPTS
 }
 
+fix_speed() {
+local SPEED=`cat $S/$IFACE/speed` 2> /dev/null
+if [ -n "$SPEED" ]
+then
+	if [ "$SPEED" -lt 101 ]
+	then
+		for I in /sys/class/net/$IFACE/queues/tx-%d/byte_queue_limits/limit_max
+		do
+		echo $BQLLIMIT > $I
+		done
+	fi
+fi
+}
 
-tc qdisc del dev $IFACE root 2> /dev/null
-[ $LL -eq 1 ] && et # for lowest latency disable offloads
-
-QUEUES=`ls -d $S/$IFACE/queues/tx-* | wc -l | awk '{print $1}'`
-
+fix_queues() {
+local QUEUES=`ls -d $S/$IFACE/queues/tx-* | wc -l | awk '{print $1}'`
 if [ $QUEUES -gt 1 ]
 then
 	if [ -x $S/$IFACE/phy80211 ] 
@@ -83,5 +94,13 @@ then
 else
 	fq_codel
 fi
+}
+
+
+tc qdisc del dev $IFACE root 2> /dev/null
+[ $LL -eq 1 ] && et # for lowest latency disable offloads
+fix_speed
+fix_queues
 
 exit 0
+
