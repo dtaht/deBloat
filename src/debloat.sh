@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # This script is presently targetted to go into 
 # /etc/network/ifup.d
@@ -50,7 +50,8 @@ wifi() {
 	tc qdisc add dev $IFACE parent 1:4 $QDISC $FQ_OPTS noecn
 }
 
-# Hardware mq devices are special 
+# Hardware mq ethernet devs are special and need some sort of filter
+# attached to actually use in most cases. FIXME. (see tg3)
 
 mq() {
 	local I=1
@@ -58,7 +59,7 @@ mq() {
 
 	for i in $S/$IFACE/queues/tx-*
 	do
-		tc qdisc add dev $IFACE parent 1:$I $QDISC $FQ_OPTS
+		tc qdisc add dev $IFACE parent 1:$(printf "%x" $I) $QDISC $FQ_OPTS
 		I=`expr $I + 1`
 	done
 }
