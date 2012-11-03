@@ -15,10 +15,11 @@ QDISC=fq_codel # There are multiple variants of fq_codel in testing
 [ -z `which ethtool` ] && echo error: ethtool is required && exit 1
 [ -z `which tc` ] && echo error: tc is required && exit 1
 # FIXME see if $QDISC is available. modprobe?
+
 # BUGS - need to detect bridges. 
 #      - Need filter to distribute across mq ethernet devices
-#      - needs an "undebloat" script for ifdown
-#      - should probably use a lower $QDISC limit at wifi and <10Gbit
+#      - needs an "undebloat" script for ifdown to restore BQL autotuning
+#      - should use a lower $QDISC limit at wifi and <10Gbit
 
 S=/sys/class/net
 FQ_OPTS=""
@@ -77,9 +78,10 @@ if [ -n "$SPEED" ]
 then
 	if [ "$SPEED" -lt 101 ]
 	then
+	[ $LL -eq 1 ] && et # for lowest latency disable offloads
 		for I in /sys/class/net/$IFACE/queues/tx-*/byte_queue_limits/limit_max
 		do
-		echo $BQLLIMIT > $I
+			echo $BQLLIMIT > $I
 		done
 	fi
 fi
@@ -102,7 +104,6 @@ fi
 
 
 tc qdisc del dev $IFACE root 2> /dev/null
-[ $LL -eq 1 ] && et # for lowest latency disable offloads
 fix_speed
 fix_queues
 
