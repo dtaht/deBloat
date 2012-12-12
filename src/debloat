@@ -114,7 +114,7 @@ is helpful.
 This started out life as a shell script to exercise qfq,
 Now it does a lot more than that and is getting crufty. 
 
-SFQ is now the default. SFQ itself has been improved significantly
+FQ_CODEL is now the default. SFQ has been improved significantly
 in Linux 3.3 (eliminating a head of line problem), and in this case
 no new TC utility is required. Also a bug in red was fixed, and no
 new tc utility is required there either. So if you were using either
@@ -135,12 +135,12 @@ and with GSO on, at 100Mbit, I have seen latency spikes of up to 70ms.
 
    (Not recently tested, however)
 
-A per queue limit of 2-3 large packets appears to be the best
+A per queue limit of 2 large packets appears to be the best
 compromise at 100Mbit and below. So typically I hammer down BQL to
-4.5k or 3k at < 100Mbit, and turn GSO/TSO off, and as a result see
+3k at < 100Mbit, and turn GSO/TSO off, and as a result see
 ping against load latencies in the 1 to 2ms range, which is about
 what you would expect. I have tried 1500 bytes, which limited the top
-end performance to about 84Mbit.
+end performance to about 84Mbit. At 10Mbit, 1514 works on most OSes.
 
 For comparison, you will see PFIFO_FAST doing 130+ms, pre BQL, no
 SFQ at 100Mbit.
@@ -148,7 +148,7 @@ SFQ at 100Mbit.
 * A BQL enabled ethernet device driver is helpful
 
 But there is currently no good way to detect if you have one at run
-time. 6-7 of the most major drivers have been convered to BQL, more
+time. 10 of the most major drivers have been convered to BQL, more
 remain.
 
 * Wireless still has problems
@@ -199,9 +199,11 @@ I have tried pfifo_drop_head, SFB, and RED here.  All had bugs until
 pfifo_drop_head generates interesting results.
 
 The very new combination of REDSFQ which compensates for both bytes
-and packets is very interesting, as it combines everything we have
+and packets was very interesting, as it combines everything we have
 learned in the past year into one single qdisc which can be brought up
 as a shaper in three lines of code.
+
+FQ_Codel is better.
 
 In other news:
 
@@ -1619,7 +1621,7 @@ local function ethernet_fq_codel(queues)
 end
 
 local function ethernet_fq_codel_ll(queues)
-	 qa("handle %x root fq_codel quantum 1000 ",10)
+	 qa("handle %x root fq_codel limit 1000 quantum 1000 ",10)
 end
 
 local function ethernet_codel(queues)
