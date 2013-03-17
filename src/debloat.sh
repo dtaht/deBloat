@@ -88,7 +88,7 @@ local SPEED=`cat $S/$IFACE/speed` 2> /dev/null
 if [ -n "$SPEED" ]
 then
 	[ "$SPEED" = 4294967295 ] && echo "no ethernet speed selected. debloat estimate will be WRONG"
-	[ "$SPEED" -lt 1001 ] && FQ_LIMIT=1200
+	[ "$SPEED" -lt 1001 ] && FQ_LIMIT="limit 1200"
 	if [ "$SPEED" -lt 101 ]
 	then
 	[ $LL -eq 1 ] && et # for lowest latency disable offloads
