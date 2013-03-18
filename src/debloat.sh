@@ -6,6 +6,8 @@
 # This script is presently targetted to go into 
 # /etc/network/ifup.d on debian derived systems
 
+[[ "$IFACE" == "lo" ]] && exit 0
+
 LL=1 # go for lowest latency
 ECN=1 # enable ECN
 BQLLIMIT100=3000 # at speeds below 100Mbit, 2 big packets is enough
