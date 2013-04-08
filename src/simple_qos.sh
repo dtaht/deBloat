@@ -1,6 +1,6 @@
 #!/bin/sh
 # Cero3 Shaper
-# A 3 bin sfqred and ipv6 enabled shaping script for
+# A 3 bin tc_codel and ipv6 enabled shaping script for
 # ethernet gateways, with an eye towards working well
 # with wireless with uplinks in the 2Mbit to 25Mbit 
 # range. It ain't done yet, and is cerowrt specific
@@ -18,13 +18,12 @@
 # to setup various other parameters such as BQL and ethtool.
 # (And that the debloat script has setup the other interfaces)
 
-[ -e /etc/functions.sh ] && . /etc/functions.sh || . ./functions.sh
-
-# You need to jiggle these parameters
+# You need to jiggle these parameters. Note limits are tuned towards a <10Mbit uplink <60Mbup down
 
 UPLINK=2000
 DOWNLINK=20000
 DEV=ifb0
+QDISC=nfq_codel # nfq_codel is higher over head than fq_codel but does better on quantums. I hope.
 IFACE=ge00
 DEPTH=42
 TC=/usr/sbin/tc
@@ -60,6 +59,63 @@ iptables $*
 ip6tables $*
 }
 
+do_modules() {
+
+insmod sch_$QDISC
+insmod sch_ingress
+insmod act_mirred
+insmod cls_fw
+insmod sch_htb
+
+}
+
+# This could be a complete diffserv implementation
+
+diffserv() {
+
+# While it would be simpler to do this in a loop, we try to find our first matches
+# fast which takes the following
+
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 1 u32 match ip tos 0x00 0xfc classid 1:12 # CS0
+tc filter add dev $DEV protocol ip parent 1:0 prio 2 u32 match ip tos 0x00 0xfc classid 1:12 # CS0
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 3 u32 match ip6 flowlabel 12345 0xfc classid 1:11 # Low Delay
+tc filter add dev $DEV protocol ip parent 1:0 prio 4 u32 match ip tos 0x10 0xfc classid 1:11 # Low Delay
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 5 u32 match ip tos 0x20 0xfc classid 1:13 # CS1 Bulk
+tc filter add dev $DEV protocol ip parent 1:0 prio 6 u32 match ip tos 0x20 0xfc classid 1:13 # CS1 Bulk
+
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 4 u32 match ip tos 0x88 0xfc classid 1:11 # AF41
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 5 u32 match ip tos 0x90 0xfc classid 1:11 # AF42
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 21 u32 match ip tos 0x98 0xfc classid 1:13 # AF43
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 7 u32 match ip tos 0x28 0xfc classid 1:12 # AF11
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 8 u32 match ip tos 0x30 0xfc classid 1:12 # AF12
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 9 u32 match ip tos 0x38 0xfc classid 1:13 # AF13
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 10 u32 match ip tos 0x48 0xfc classid 1:12 # AF21
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 11 u32 match ip tos 0x58 0xfc classid 1:12 # AF22
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 12 u32 match ip tos 0x58 0xfc classid 1:13 # AF23
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 13 u32 match ip tos 0x68 0xfc classid 1:12 # AF31
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 14 u32 match ip tos 0x70 0xfc classid 1:12 # AF32
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 15 u32 match ip tos 0x78 0xfc classid 1:13 # AF33
+
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 16 u32 match ip tos 0x40 0xfc classid 1:12 # CS2
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 17 u32 match ip tos 0x60 0xfc classid 1:12 # CS3
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 18 u32 match ip tos 0x80 0xfc classid 1:12 # CS4
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 19 u32 match ip tos 0xa0 0xfc classid 1:12 # CS5
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 9 u32 match ip tos 0xc0 0xfc classid 1:11 # CS6
+#tc filter add dev $DEV protocol ipv6 parent 1:0 prio 6 u32 match ip tos 0xe0 0xfc classid 1:11 # CS7
+
+# We can't use these on ifb
+#tc filter add dev $DEV parent 1:0 protocol ip prio 3 handle 1 fw classid 1:12
+#tc filter add dev $DEV parent 1:0 protocol ip prio 4 handle 2 fw classid 1:13
+# ipv6 support. Note that the handle indicates the fw mark bucket that is looked for
+#tc filter add dev $DEV parent 1:0 protocol ipv6 prio 8 handle 1 fw classid 1:11
+#tc filter add dev $DEV parent 1:0 protocol ipv6 prio 9 handle 2 fw classid 1:12
+#tc filter add dev $DEV parent 1:0 protocol ipv6 prio 10 handle 3 fw classid 1:13
+
+# Arp traffic
+tc filter add dev $DEV parent 1:0 protocol arp prio 7 handle 1 fw classid 1:11
+}
+
+
 ipt_setup() {
 
 ipt -t mangle -F
@@ -80,7 +136,8 @@ ipt -t mangle -A QOS_MARK -m tos --tos Minimize-Delay -j MARK --set-mark 0x1
 ipt -t mangle -A POSTROUTING -o $DEV -m mark --mark 0x00 -g QOS_MARK 
 ipt -t mangle -A POSTROUTING -o $IFACE -m mark --mark 0x00 -g QOS_MARK 
 
-ipt -t mangle -A PREROUTING -i s+ -p tcp -m tcp --tcp-flags SYN,RST,ACK SYN -j MARK --set-mark 0x01
+# The Syn optimization was nice but fq_codel does it for us
+# ipt -t mangle -A PREROUTING -i s+ -p tcp -m tcp --tcp-flags SYN,RST,ACK SYN -j MARK --set-mark 0x01
 # Not sure if this will work. Encapsulation is a problem period
 ipt -t mangle -A PREROUTING -i vtun+ -p tcp -j MARK --set-mark 0x2 # tcp tunnels need ordering
 
@@ -120,20 +177,9 @@ tc class add dev $IFACE parent 1:1 classid 1:11 htb rate 128kbit ceil ${PRIO_RAT
 tc class add dev $IFACE parent 1:1 classid 1:12 htb rate ${BE_RATE}kbit ceil ${BE_CEIL}kbit prio 2 $ADSLL
 tc class add dev $IFACE parent 1:1 classid 1:13 htb rate ${BK_RATE}kbit ceil ${BE_CEIL}kbit prio 3 $ADSLL
 
-# The calculations (still) needed here are why I wanted to do this in lua first
-# all the variables - limit, depth, min, max, redflowlimit are dependent on the
-# bandwidth, but scale differently. I don't think RED can be made to work on
-# long RTTs, period...
-
-# I'd prefer to use a pre-nat filter but that causes permutation...
-# Anyway... need FP (sqrt) from lua to finish this part...
-
-# A depth of 16 is better at low rates, but no lower. I'd argue for a floor of 22
-# Packet aggregation suggests 42-64.
-
-tc qdisc add dev $IFACE parent 1:11 handle 110: codel 
-tc qdisc add dev $IFACE parent 1:12 handle 120: codel 
-tc qdisc add dev $IFACE parent 1:13 handle 130: codel
+tc qdisc add dev $IFACE parent 1:11 handle 110: $QDISC limit 600 noecn
+tc qdisc add dev $IFACE parent 1:12 handle 120: $QDISC limit 600 noecn
+tc qdisc add dev $IFACE parent 1:13 handle 130: $QDISC limit 600 noecn
 
 tc filter add dev $IFACE parent 1:0 protocol ip prio 1 handle 1 fw classid 1:11
 tc filter add dev $IFACE parent 1:0 protocol ip prio 2 handle 2 fw classid 1:12
@@ -153,11 +199,6 @@ tc filter add dev $IFACE parent 1:0 protocol arp prio 7 handle 1 fw classid 1:11
 
 ingress() {
 
-insmod sch_ingress
-insmod act_mirred
-insmod cls_fw
-insmod sch_htb
-
 CEIL=$DOWNLINK
 PRIO_RATE=`expr $CEIL / 3` # Ceiling for prioirty
 BE_RATE=`expr $CEIL / 6`   # Min for best effort
@@ -171,76 +212,19 @@ tc qdisc add dev $IFACE handle ffff: ingress
  
 tc qdisc del dev $DEV root 
 tc qdisc add dev $DEV root handle 1: htb ${RTQ} default 12
-tc class add dev $DEV parent 1: classid 1:1 htb rate ${CEIL}kibit ceil ${CEIL}kibit $ADSLL
-tc class add dev $DEV parent 1:1 classid 1:10 htb rate ${CEIL}kibit ceil ${CEIL}kibit prio 0 $ADSLL
-tc class add dev $DEV parent 1:1 classid 1:11 htb rate 32kibit ceil ${PRIO_RATE}kibit prio 1 $ADSLL
-tc class add dev $DEV parent 1:1 classid 1:12 htb rate ${BE_RATE}kibit ceil ${BE_CEIL}kibit prio 2 $ADSLL
-tc class add dev $DEV parent 1:1 classid 1:13 htb rate ${BK_RATE}kibit ceil ${BE_CEIL}kibit prio 3 $ADSLL
-
-# The calculations (still) needed here are why I 
-# wanted to do this in lua first.
-# all the variables - limit, depth, min, max, redflowlimit 
-# are dependent on the bandwidth, but scale differently. 
-# I don't think RED can be made to work on long RTTs, period...
+tc class add dev $DEV parent 1: classid 1:1 htb rate ${CEIL}kbit ceil ${CEIL}kibit $ADSLL
+tc class add dev $DEV parent 1:1 classid 1:10 htb rate ${CEIL}kbit ceil ${CEIL}kibit prio 0 $ADSLL
+tc class add dev $DEV parent 1:1 classid 1:11 htb rate 32kbit ceil ${PRIO_RATE}kibit prio 1 $ADSLL
+tc class add dev $DEV parent 1:1 classid 1:12 htb rate ${BE_RATE}kbit ceil ${BE_CEIL}kibit prio 2 $ADSLL
+tc class add dev $DEV parent 1:1 classid 1:13 htb rate ${BK_RATE}kbit ceil ${BE_CEIL}kibit prio 3 $ADSLL
 
 # I'd prefer to use a pre-nat filter but that causes permutation...
-# Anyway... need FP (sqrt) from lua to finish this part...
 
-# A depth of 16 is better at low rates, but no lower. 
-# I'd argue for a floor of 22 Packet aggregation suggests 
-# ${DEPTH}-64.
+tc qdisc add dev $DEV parent 1:11 handle 110: $QDISC limit 1000 ecn
+tc qdisc add dev $DEV parent 1:12 handle 120: $QDISC limit 1000 ecn
+tc qdisc add dev $DEV parent 1:13 handle 130: $QDISC limit 1000 ecn
 
-tc qdisc add dev $DEV parent 1:11 handle 110: codel
-tc qdisc add dev $DEV parent 1:12 handle 120: codel
-tc qdisc add dev $DEV parent 1:13 handle 130: codel
-
-#tc filter add dev $DEV parent 1:0 protocol ip prio 4 u32 match u8 8 \
-#fc at 1 classid 1:13
-#for i in `seq 4 254`
-#do
-#a=`printf "tc filter add dev $DEV protocol ip parent 1:0 prio %d u32 match u8 0x%x 0x03 at 1 classid 1:13" $i $i`
-#$a
-#a=`printf "tc filter add dev $DEV protocol ip parent 1:0 prio %d u32 match ip tos 0x%x 0xfc classid 1:13" $i $i`
-#$a
-#done
-
-# This could be a complete diffserv implementation
-
-tc filter add dev $DEV protocol ip parent 1:0 prio 1 u32 match ip tos 0x00 0xfc classid 1:12 # CS0
-tc filter add dev $DEV protocol ip parent 1:0 prio 2 u32 match ip tos 0x10 0xfc classid 1:11 # Low Delay
-tc filter add dev $DEV protocol ip parent 1:0 prio 3 u32 match ip tos 0x20 0xfc classid 1:13 # CS1 Bulk
-tc filter add dev $DEV protocol ip parent 1:0 prio 4 u32 match ip tos 0x88 0xfc classid 1:11 # AF41
-tc filter add dev $DEV protocol ip parent 1:0 prio 5 u32 match ip tos 0x90 0xfc classid 1:11 # AF42
-tc filter add dev $DEV protocol ip parent 1:0 prio 21 u32 match ip tos 0x98 0xfc classid 1:11 # AF43
-tc filter add dev $DEV protocol ip parent 1:0 prio 7 u32 match ip tos 0x28 0xfc classid 1:12 # AF11
-tc filter add dev $DEV protocol ip parent 1:0 prio 8 u32 match ip tos 0x30 0xfc classid 1:12 # AF12
-tc filter add dev $DEV protocol ip parent 1:0 prio 9 u32 match ip tos 0x38 0xfc classid 1:13 # AF13
-tc filter add dev $DEV protocol ip parent 1:0 prio 10 u32 match ip tos 0x48 0xfc classid 1:12 # AF21
-tc filter add dev $DEV protocol ip parent 1:0 prio 11 u32 match ip tos 0x58 0xfc classid 1:12 # AF22
-tc filter add dev $DEV protocol ip parent 1:0 prio 12 u32 match ip tos 0x58 0xfc classid 1:13 # AF23
-tc filter add dev $DEV protocol ip parent 1:0 prio 13 u32 match ip tos 0x68 0xfc classid 1:12 # AF31
-tc filter add dev $DEV protocol ip parent 1:0 prio 14 u32 match ip tos 0x70 0xfc classid 1:12 # AF32
-tc filter add dev $DEV protocol ip parent 1:0 prio 15 u32 match ip tos 0x78 0xfc classid 1:13 # AF33
-
-tc filter add dev $DEV protocol ip parent 1:0 prio 16 u32 match ip tos 0x40 0xfc classid 1:13 # CS2
-tc filter add dev $DEV protocol ip parent 1:0 prio 17 u32 match ip tos 0x60 0xfc classid 1:13 # CS3
-tc filter add dev $DEV protocol ip parent 1:0 prio 18 u32 match ip tos 0x80 0xfc classid 1:13 # CS4
-tc filter add dev $DEV protocol ip parent 1:0 prio 19 u32 match ip tos 0xa0 0xfc classid 1:13 # CS5
-tc filter add dev $DEV protocol ip parent 1:0 prio 9 u32 match ip tos 0xc0 0xfc classid 1:11 # CS6
-tc filter add dev $DEV protocol ip parent 1:0 prio 6 u32 match ip tos 0xe0 0xfc classid 1:11 # CS7
-
-#tc filter add dev $DEV parent 1:0 protocol ip prio 3 handle 1 fw classid 1:12
-#tc filter add dev $DEV parent 1:0 protocol ip prio 4 handle 2 fw classid 1:13
-
-# ipv6 support. Note that the handle indicates the fw mark bucket that is looked for
-
-#tc filter add dev $DEV parent 1:0 protocol ipv6 prio 8 handle 1 fw classid 1:11
-#tc filter add dev $DEV parent 1:0 protocol ipv6 prio 9 handle 2 fw classid 1:12
-#tc filter add dev $DEV parent 1:0 protocol ipv6 prio 10 handle 3 fw classid 1:13
-
-# Arp traffic
-
-#tc filter add dev $DEV parent 1:0 protocol arp prio 7 handle 1 fw classid 1:11
+diffserv
 
 ifconfig ifb0 up
 
@@ -251,6 +235,7 @@ $TC filter add dev $IFACE parent ffff: protocol all prio 10 u32 \
 
 }
 
+do_modules
 ipt_setup
 egress 
 ingress
