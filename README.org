@@ -1,3 +1,15 @@
+* September 2016: The contents of this site have now moved
+
+They are largely documented, implemented, or built into one of the following sites:
+
+- Canonical site for all things related to Bufferbloat - http://www.bufferbloat.net 
+- Dave Täht's blog that describes his investigations - http://blog.cerowrt.org/ 
+- Flent - reliable, repeatable, and automated network tester - https://flent.org/ 
+- Bufferbloat/Codel/Make-WiFi-Fast mailing lists - https://lists.bufferbloat.net/listinfo/ 
+- Current version of the RRUL Specification - https://www.bufferbloat.net/projects/bloat/wiki/RRUL_Spec/
+
+--- from the old README.org ---
+
 * Various scripts for less bufferbloated fair queuing, traffic shaping, etc
 
 The principal item of interest in this repository is the [[src/debloat]]
